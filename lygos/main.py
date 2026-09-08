@@ -3441,14 +3441,14 @@ def init( \
                             listminmpara.append(-1.)
                             listminmpara.append(1.)
                             listnamepara.append('xposdelt%04d' % k)
-                            listlablpara.append(['$\Delta x_{%d}$' % k, ''])
+                            listlablpara.append([r'$\Delta x_{%d}$' % k, ''])
                             cntr += 1
 
                             gdat.indxparapsfnypos[k] = cntr
                             listminmpara.append(-1.)
                             listminmpara.append(1.)
                             listnamepara.append('yposdelt%04d' % k)
-                            listlablpara.append(['$\Delta y_{%d}$' % k, ''])
+                            listlablpara.append([r'$\Delta y_{%d}$' % k, ''])
                             cntr += 1
                     
                     if gdat.typefittpsfncnts == 'vari':
@@ -3475,7 +3475,7 @@ def init( \
                         listminmpara.append(0.5)
                         listmaxmpara.append(2.)
                         listnamepara.append('sigmpsfn')
-                        listlablpara.append(['$\sigma$', 'px'])
+                        listlablpara.append([r'$\sigma$', 'px'])
                         cntr += 1
                     
                     if gdat.fitt.typepsfnshap == 'gauselli':
@@ -3484,29 +3484,28 @@ def init( \
                         listminmpara.append(0.5)
                         listmaxmpara.append(2.)
                         listnamepara.append('sigmpsfnxpos')
-                        listlablpara.append(['$\sigma_x$', 'px'])
+                        listlablpara.append([r'$\sigma_x$', 'px'])
                         cntr += 1
-                    
+
                         gdat.indxparapsfnpsfn[1] = cntr
                         listminmpara.append(0.5)
                         listmaxmpara.append(2.)
                         listnamepara.append('sigmpsfnypos')
-                        listlablpara.append(['$\sigma_y$', 'px'])
+                        listlablpara.append([r'$\sigma_y$', 'px'])
                         cntr += 1
-                    
+
                         gdat.indxparapsfnpsfn[2] = cntr
                         listminmpara.append(-10.)
                         listmaxmpara.append(10.)
                         listnamepara.append('fracskewpsfnxpos')
-                        listlablpara.append(['$\chi_x$', ''])
+                        listlablpara.append([r'$\chi_x$', ''])
                         cntr += 1
-                    
+
                         gdat.indxparapsfnpsfn[3] = cntr
                         listminmpara.append(-10.)
                         listmaxmpara.append(10.)
                         listnamepara.append('fracskewpsfnypos')
-                        listlablpara.append(['$\chi_y$', ''])
-                        cntr += 1
+                        listlablpara.append([r'$\chi_y$', ''])
                     
                     if gdat.fitt.typepsfnshap == 'empi':
                         gdat.indxparapsfnpsfn = np.empty(gdat.numbparapsfnempi, dtype=int)
