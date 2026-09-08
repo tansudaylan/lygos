@@ -751,6 +751,8 @@ def cnfg_ASASSN20qc():
                      )
 
 
-globals().get(sys.argv[1])(*sys.argv[2:])
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        globals().get(sys.argv[1])(*sys.argv[2:])
 
 
