@@ -11,9 +11,10 @@ Lygos sits at the interface between image-domain data products and higher-level 
 ```bash
 cd /path/to/lygos
 pip install -e .
+export LYGOS_PATH=/path/to/lygos
 ```
 
-The workflow expects a configured data directory, typically via the `LYGOS_DATA_PATH` environment variable or by passing a project path explicitly to the workflow functions.
+`LYGOS_PATH` identifies the repository root, whose `data/` and `visuals/` directories are ignored by Git. The workflow separately expects a configured working-data directory, typically via `LYGOS_DATA_PATH` or an explicit project path; that existing variable retains its dataset and output semantics.
 
 ## Minimal usage
 

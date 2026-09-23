@@ -6,5 +6,6 @@ package boundary remains clear and the scientific workflow is easier to inspect.
 """
 
 from .main import init
+from .paths import get_data_path, get_repository_path, get_visuals_path
 
-__all__ = ["init"]
+__all__ = ["get_data_path", "get_repository_path", "get_visuals_path", "init"]
