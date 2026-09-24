@@ -30,6 +30,12 @@ import nicomedia
 import miletos
 
 
+def identify_tpf_sectors(selected_sectors, available_tpf_sectors):
+    """Return whether each selected TESS sector has a SPOC target-pixel file."""
+
+    return tdpy.retr_boolsubb(selected_sectors, available_tpf_sectors)
+
+
 def down_tcut(gdat):
             
     #strgsrch = '%g %g' % (gdat.rasctarg, gdat.decltarg)
@@ -2055,7 +2061,9 @@ def init( \
                 print('Will not be using TPFs since number of pixels along a side is not 11.')
             else:
                 # determine whether sectors have TPFs
-                gdat.booltpxf[p] = ~tdpy.retr_boolsubb(gdat.listipnt[p], gdat.listtsecspoc)
+                gdat.booltpxf[p] = identify_tpf_sectors(
+                    gdat.listipnt[p], gdat.listtsecspoc
+                )
 
             if gdat.booldiag:
                 for o in gdat.indxtsec[p]:

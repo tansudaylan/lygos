@@ -29,6 +29,18 @@ import lygos
 
 The package is designed to run through the importable workflow entry points rather than through ad hoc local scripts.
 
+## Public TESS target-pixel example
+
+With `LYGOS_PATH` set to the repository root, run:
+
+```bash
+python examples/public_tess_target_pixel.py --typefileplot png
+```
+
+![WASP-121 TESS Sector 7 target-pixel diagnostic](examples/public_tess_target_pixel.png)
+
+The example queries the public Mikulski Archive for Space Telescopes (MAST) for the WASP-121 SPOC target-pixel products, selects TESS Sector 7, masks nonzero quality flags, and calls the maintained Lygos image workflow. The figure is the pipeline-generated median 11 by 11 pixel count map with the nearby TESS Input Catalog sources overlaid. It is an observed TESS data product rather than a simulation. The current example validates image ingestion and contamination context; it does not claim a Lygos-extracted light curve.
+
 ## Input, intermediate products, and outputs
 A good Lygos run should produce a visible chain of products:
 
