@@ -50,6 +50,3 @@ A good Lygos run should produce a visible chain of products:
 - final target light curves and summary plots.
 
 These outputs should be written to a reproducible project directory rather than relying on personal workstation paths.
-
-## Current maintenance status
-The repository remains research-grade and workflow-oriented rather than a general-purpose black-box package. The supported interface is the package import plus the documented workflow entry points; older or prototype analysis code should be treated as legacy unless clearly migrated.

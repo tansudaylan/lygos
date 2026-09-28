@@ -1093,9 +1093,9 @@ def init( \
                 print(gdat.liststrgtypedata)
                 raise Exception('gdat.liststrgtypedata has an issue.')
 
+    gdat.numbsidedefa = 11
     if gdat.numbside is None:
         gdat.boolinptnumbside = False
-        gdat.numbsidedefa = 11
         gdat.numbside = np.full(gdat.numbinst, gdat.numbsidedefa)
     else:
         gdat.boolinptnumbside = True
@@ -1229,6 +1229,10 @@ def init( \
 
     if gdat.ticitarg is not None or gdat.toiitarg is not None:
         dicttoii = nicomedia.retr_dicttoii()
+        dicttoii = {
+            name: valu[0] if isinstance(valu, list) and len(valu) == 2 and isinstance(valu[1], str) else valu
+            for name, valu in dicttoii.items()
+        }
 
     # settings
     ## plotting
@@ -1247,6 +1251,11 @@ def init( \
         if indx.size > 0:
             gdat.toiitarg = int(str(dicttoii['TOIID'][indx[0]]).split('.')[0])
             print('Matched the input TIC ID with TOI %d.' % gdat.toiitarg)
+        listtic = astroquery.mast.Catalogs.query_criteria(catalog='TIC', ID=gdat.ticitarg)
+        if len(listtic) > 0:
+            gdat.rasctarg = listtic[0]['ra']
+            gdat.decltarg = listtic[0]['dec']
+            gdat.tmagtarg = listtic[0]['Tmag']
         gdat.strgmast = 'TIC %d' % gdat.ticitarg
     elif gdat.toiitarg is not None:
         gdat.typetarg = 'TOIID'
@@ -1353,7 +1362,8 @@ def init( \
         print(gdat.sizepixl)
         print('Querying the TIC within %.3g arcseconds around the source with the MAST keyword %s and maximum Tmag %g...' \
                                                                                     % (gdat.maxmradiquer, gdat.strgmast, gdat.maxmtmagcatl))
-        catalogData = astroquery.mast.Catalogs.query_criteria(coordinates=gdat.strgmast, radius='%ds' % gdat.maxmradiquer, catalog="TIC", Tmag=[-20., gdat.maxmtmagcatl])
+        coordinates = '%g %g' % (gdat.rasctarg, gdat.decltarg) if gdat.rasctarg is not None else gdat.strgmast
+        catalogData = astroquery.mast.Catalogs.query_criteria(coordinates=coordinates, radius='%ds' % gdat.maxmradiquer, catalog="TIC", Tmag=[-20., gdat.maxmtmagcatl])
         print('Found %d TIC sources within %.3g arcseconds.' % (len(catalogData), gdat.maxmradiquer))
         if len(catalogData) == 0:
             raise Exception('')
@@ -1611,16 +1621,16 @@ def init( \
     gdat.pathvisuclus = gdat.pathclus + 'visuals/'
     
     if gdat.boolplot:
-        os.system('mkdir -p %s' % gdat.pathvisulygo)
-        os.system('mkdir -p %s' % gdat.pathvisutarg)
-        os.system('mkdir -p %s' % gdat.pathvisuclus)
-    os.system('mkdir -p %s' % gdat.pathdatalygo)
-    os.system('mkdir -p %s' % gdat.pathdatatarg)
-    os.system('mkdir -p %s' % gdat.pathdataclus)
+        os.makedirs(gdat.pathvisulygo, exist_ok=True)
+        os.makedirs(gdat.pathvisutarg, exist_ok=True)
+        os.makedirs(gdat.pathvisuclus, exist_ok=True)
+    os.makedirs(gdat.pathdatalygo, exist_ok=True)
+    os.makedirs(gdat.pathdatatarg, exist_ok=True)
+    os.makedirs(gdat.pathdataclus, exist_ok=True)
     
     # create a separate folder to place the PSF fit output
     gdat.pathvisutargsexp = gdat.pathvisutarg + 'sexp/'
-    os.system('mkdir -p %s' % gdat.pathvisutargsexp)
+    os.makedirs(gdat.pathvisutargsexp, exist_ok=True)
    
     # header that will be added to the output CSV files
     gdat.strgheadtarg = 'time [BJD], relative flux, relative flux error'
@@ -1681,7 +1691,7 @@ def init( \
         
         if not os.path.exists(gdat.pathdatatargtcut) or len(listname) == 0:
             
-            os.system('mkdir -p %s' % gdat.pathdatatargtcut)
+            os.makedirs(gdat.pathdatatargtcut, exist_ok=True)
             
             timeinit = timemodu.time()
 
@@ -1826,7 +1836,7 @@ def init( \
             gdat.indxtsecspoc = np.arange(gdat.numbpoinspoc)
             
             # download data from MAST
-            os.system('mkdir -p %s' % gdat.pathdatatarg)
+            os.makedirs(gdat.pathdatatarg, exist_ok=True)
         
             print('Downloading SPOC data products...')
             
