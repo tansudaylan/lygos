@@ -1,4 +1,6 @@
 import os, datetime, fnmatch, time as timemodu
+import urllib.request
+import zipfile
 
 import numpy as np
 
@@ -43,18 +45,16 @@ def down_tcut(gdat):
     #listhdundatatemp = astroquery.mast.Tesscut.get_cutouts(coordinates=strgsrch, size=gdat.numbside[p])
 
     print('')
-    print('Will download the data via wget, unzip, and read the files...')
+    print('Will download and extract the TESSCut archive...')
     
     strgfile = 'astrocut?ra=%.6f&dec=%.6f&y=%d&x=%d' % (gdat.rasctarg, gdat.decltarg, gdat.numbsidedefa, gdat.numbsidedefa)
     strgfileastrzipp = '%sastrocut_%s.zip' % (gdat.pathdatatargtcut, strgfile)
     
-    cmnd = 'wget "https://mast.stsci.edu/tesscut/api/v0.1/%s" -O "%s"' % (strgfile, strgfileastrzipp)
-    print(cmnd)
-    os.system(cmnd)
-    
-    cmnd = 'tar -zxvf "%s" -C %s' % (strgfileastrzipp, gdat.pathdatatargtcut)
-    print(cmnd)
-    os.system(cmnd)
+    url = 'https://mast.stsci.edu/tesscut/api/v0.1/%s' % strgfile
+    print('Downloading %s to %s...' % (url, strgfileastrzipp))
+    urllib.request.urlretrieve(url, strgfileastrzipp)
+    with zipfile.ZipFile(strgfileastrzipp) as archive:
+        archive.extractall(gdat.pathdatatargtcut)
 
 
 def retr_fluxfromtmag(tmag):
@@ -1725,6 +1725,8 @@ def init( \
                 else:
                     timefinl = timemodu.time()
                     print('Successfully called TESSCut in %g seconds.' % (timefinl - timeinit))
+            else:
+                down_tcut(gdat)
                             
             strgkeyy = "tess-s*_%.6f_%.6f_%dx%d_astrocut.fits" % (gdat.rasctarg, gdat.decltarg, gdat.numbsidedefa, gdat.numbsidedefa)
             liststrgfile = fnmatch.filter(os.listdir(gdat.pathdatatargtcut), strgkeyy)
