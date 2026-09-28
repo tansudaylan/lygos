@@ -1102,6 +1102,8 @@ def init( \
         
     if isinstance(gdat.numbside, list):
         gdat.numbside = np.array(gdat.numbside)
+    if gdat.boolinptnumbside:
+        gdat.numbsidedefa = int(np.amax(gdat.numbside))
 
     if gdat.dicttrue is None:
         gdat.dicttrue = dict()
@@ -1683,7 +1685,7 @@ def init( \
         gdat.pathdatatargtcut = gdat.pathdatatarg + 'TESSCut/'
         if os.path.exists(gdat.pathdatatargtcut):
             print('Looking for TESSCut FITS files in %s...' % gdat.pathdatatargtcut)
-            listname = fnmatch.filter(os.listdir(gdat.pathdatatargtcut), 'tess-*_astrocut.fits')
+            listname = fnmatch.filter(os.listdir(gdat.pathdatatargtcut), 'tess-*_%dx%d_astrocut.fits' % (gdat.numbsidedefa, gdat.numbsidedefa))
             if len(listname) == 0:
                 print('Did not find any TESSCut FITS files.')
         else:

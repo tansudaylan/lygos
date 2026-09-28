@@ -1,6 +1,6 @@
 # Lygos
 
-## Scientific purpose
+## Purpose
 Lygos is a TESS image-based photometry and light-curve extraction workflow. It is designed to model or extract stellar fluxes from image stacks and produce light curves with diagnostics for subsequent time-domain analyses.
 
 ## Repository role in the ecosystem
