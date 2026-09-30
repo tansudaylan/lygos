@@ -28,6 +28,7 @@ import miletos
 
 import tdpy
 from pcat import plot_population_grid
+from pcat.fixed import sample_posterior
 from tdpy.util import summgene
 
 import nicomedia
@@ -3564,7 +3565,7 @@ def init( \
                         dictlablscalparaderi['fraccent'] = [['$f_p$', ''], 'self']
                     retr_dictderi = retr_dictderipsfn
 
-                    dictsamp = tdpy.samp(gdat, numbsampwalk, retr_llik, listnamepara, listlablpara, listscalpara, \
+                    dictsamp = sample_posterior(gdat, numbsampwalk, retr_llik, listnamepara, listlablpara, listscalpara, \
                                          listminmpara, listmaxmpara, numbsampburnwalkinit=numbsampburnwalkinit, \
                                                 retr_dictderi=retr_dictderi, \
                                                 dictlablscalparaderi=dictlablscalparaderi, \
