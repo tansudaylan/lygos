@@ -26,6 +26,7 @@ import astropy.wcs
 import miletos
 
 import tdpy
+from pcat import plot_population_grid
 from tdpy.util import summgene
 
 import nicomedia
@@ -3569,6 +3570,7 @@ def init( \
                                                 numbsampburnwalk=numbsampburnwalk, \
                                                 boolforcrepr=boolforcrepr, \
                                                 pathbase=gdat.pathvisutargsexp, strgextn=strgextn, \
+                                                plot_posterior=plot_population_grid, \
                                                 #typefileplot=typefileplot, \
                                                 )
                     

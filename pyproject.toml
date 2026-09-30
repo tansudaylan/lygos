@@ -28,6 +28,7 @@ dependencies = [
   "nicomedia",
   "numpy",
   "pandas",
+  "pcat",
   "scipy",
   "tdpy"
 ]
