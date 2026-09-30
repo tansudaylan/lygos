@@ -1,3 +1,4 @@
+from tdpy.verbosity import print
 import os, datetime, fnmatch, time as timemodu
 import urllib.request
 import zipfile
