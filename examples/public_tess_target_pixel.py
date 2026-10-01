@@ -6,6 +6,7 @@ from __future__ import annotations
 from tdpy.verbosity import print
 
 import argparse
+from tdpy.cli import add_plot_arguments
 from pathlib import Path
 import shutil
 
@@ -56,7 +57,7 @@ def main() -> None:
     """Parse output options and run the public-data example."""
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--typefileplot", choices=("png", "pdf"), default="png")
+    add_plot_arguments(parser)
     parser.add_argument(
         "--runtime-path",
         type=Path,
