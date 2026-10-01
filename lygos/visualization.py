@@ -91,7 +91,8 @@ def plot_image(stack: ImageStack, path, frame: int | str = "median", stretch: st
         image = stack.flux[frame]
         default_title = f"{stack.label}, {stack.time_format} {stack.time[frame]:.3f}"
     figure, axis = _new_axes(stack, sky)
-    label = "Scatter / typical pixel scatter" if frame == "variability" else None
+    label = ("Scatter / median error" if stack.error is not None else "Scatter / typical pixel scatter") \
+        if frame == "variability" else None
     _draw_image(axis, image, image_normalization(image, stretch), stack, cmap, aperture, markers, figure=figure,
                 colorbar_label=label)
     axis.set_title(title or default_title, fontsize=10)

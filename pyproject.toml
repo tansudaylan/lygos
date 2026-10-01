@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lygos"
 version = "0.1.0"
-description = "PSF photometry and light-curve extraction workflows for TESS data."
+description = "Retrieve, process, visualize, and animate TESS and Roman images, and extract TESS light curves."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -29,9 +29,18 @@ dependencies = [
   "numpy",
   "pandas",
   "pcat",
+  "Pillow",
+  "s3fs",
   "scipy",
   "tdpy"
 ]
+
+[project.optional-dependencies]
+docs = ["sphinx>=8", "sphinx-rtd-theme>=3"]
+
+[project.urls]
+Documentation = "https://lygos.readthedocs.io"
+Repository = "https://github.com/tansudaylan/lygos"
 
 [tool.setuptools.packages.find]
 include = ["lygos*"]

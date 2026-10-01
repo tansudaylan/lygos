@@ -46,6 +46,13 @@ def _filesystem():
     return s3fs.S3FileSystem(anon=True, config_kwargs={"connect_timeout": 30, "read_timeout": 120})
 
 
+def _cache_dir(cache_dir) -> Path:
+    """Return the requested download cache, or the default one, creating it if needed."""
+    path = Path(cache_dir) if cache_dir else get_cache_path("roman")
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 def _survey_root(survey: str, release: str) -> str:
     if survey not in SEQUENCES:
         raise ValueError(f"survey must be one of {tuple(SEQUENCES)}")
@@ -60,7 +67,7 @@ def load_roman_pointings(survey: str = "TDS", release: str = "preview", cache_di
     The dictionary holds ``ra`` and ``dec`` [deg] of the 18 detector centers with shape
     (pointing, detector), and per pointing ``band``, ``mjd`` [day], and ``exptime`` [s].
     """
-    cache_dir = Path(cache_dir or get_cache_path("roman"))
+    cache_dir = _cache_dir(cache_dir)
     root = _survey_root(survey, release)
     tables = {}
     for suffix in ("", "_radec"):
@@ -86,7 +93,7 @@ def list_roman_images(band: str, survey: str = "TDS", release: str = "preview", 
     """
     if band not in BANDS:
         raise ValueError(f"band must be one of {BANDS}")
-    cache_dir = Path(cache_dir or get_cache_path("roman"))
+    cache_dir = _cache_dir(cache_dir)
     index_path = cache_dir / f"index_{survey}_{release}_{kind}_{band}.json"
     if index_path.exists():
         print(f"Reading from {index_path}...")
@@ -168,7 +175,7 @@ def read_roman_image(record, cache_dir=None, keep_file: bool = True) -> ImageSta
     ``keep_file`` the compressed file is kept in ``cache_dir`` for later reads.
     """
     record = {"path": record} if isinstance(record, str) else dict(record)
-    cache_dir = Path(cache_dir or get_cache_path("roman"))
+    cache_dir = _cache_dir(cache_dir)
     local = cache_dir / Path(record["path"]).name
     if not local.exists():
         print(f"Writing to {local}...")

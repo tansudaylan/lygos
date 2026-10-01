@@ -34,7 +34,7 @@ def run_example(typefileplot: str = "png", max_frames: int = 120, stride: int = 
     paths = [
         lygos.plot_image(full_frame, VISUAL_PATH / "tess_ffi_full_frame", frame=0,
                          markers={"RR Lyr": full_frame.pixel_of(target)}, typefileplot=typefileplot),
-        lygos.plot_image(cutout, VISUAL_PATH / "tess_ffi_variability_map", frame="variability",
+        lygos.plot_image(cutout.subtract_background(), VISUAL_PATH / "tess_ffi_variability_map", frame="variability",
                          markers={"RR Lyr": cutout.pixel_of(target)}, cmap="viridis", stretch="linear",
                          typefileplot=typefileplot),
         lygos.animate_stack(cutout, VISUAL_PATH / "tess_ffi_cutout_animation", aperture=aperture,

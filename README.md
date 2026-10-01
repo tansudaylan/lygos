@@ -1,7 +1,35 @@
 # Lygos
 
 ## Purpose
-Lygos is a TESS image-based photometry and light-curve extraction workflow. It is designed to model or extract stellar fluxes from image stacks and produce light curves with diagnostics for subsequent time-domain analyses.
+Lygos retrieves, processes, visualizes, and animates images from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, and extracts TESS light curves with image-based photometry. Documentation is at https://lygos.readthedocs.io and its source in `docs/`.
+
+## Images from TESS and Roman
+Every retrieval returns one `ImageStack`, a time-ordered cube of images with times, uncertainties, quality flags, and sky coordinates. Background subtraction, difference imaging, variability maps, apertures, aperture photometry, centroids, plots, and animations therefore work the same way for every product.
+
+| Product | Source | Function |
+| --- | --- | --- |
+| TESS cutouts | MAST TESSCut | `get_tess_cutout` |
+| TESS full-frame images | public MAST bucket on Amazon Web Services | `get_tess_ffi`, `get_tess_ffi_cutout` |
+| Roman detector images | OpenUniverse 2024 simulation at IRSA | `read_roman_image` |
+| Roman cutout time series | OpenUniverse 2024 simulation at IRSA | `get_roman_cutout` |
+
+No archive account is needed, and only the pixels a cutout needs are transferred.
+
+```python
+import lygos
+
+stack = lygos.get_tess_cutout("RR Lyr", sector=14, size=15)[0].good()
+aperture = stack.threshold_aperture(threshold=5.0)
+lygos.animate_stack(stack.select(slice(0, 120)), "rrlyr", aperture=aperture,
+                    light_curve=stack.select(slice(0, 120)).aperture_photometry(aperture))
+
+roman = lygos.get_roman_cutout((9.6632, -43.88128), band="J129", size=41, mjd_range=(62150, 62550))
+lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
+```
+
+![Roman J129 difference images of a simulated Type Ia supernova with its light curve](examples/roman_time_domain_supernova/visuals/roman_supernova_difference_animation.gif)
+
+Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_images/`, and `examples/roman_time_domain_supernova/` use only public data.
 
 ## Image-based photometry
 Lygos inspects target-pixel images, models or extracts stellar fluxes from image stacks, assesses contamination from nearby sources, and produces light curves with image-level diagnostics.

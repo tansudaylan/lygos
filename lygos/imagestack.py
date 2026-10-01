@@ -40,7 +40,8 @@ def resample_image(image: np.ndarray, wcs_in: WCS, wcs_out: WCS, shape: tuple[in
     rows, columns = np.indices(shape)
     sky = wcs_out.pixel_to_world(columns.ravel(), rows.ravel())
     column_in, row_in = wcs_in.world_to_pixel(sky)
-    values = map_coordinates(np.nan_to_num(image), [row_in, column_in], order=order, mode="constant", cval=np.nan)
+    # nearest-edge extension keeps the spline finite; pixels outside the input are masked below
+    values = map_coordinates(np.nan_to_num(image), [row_in, column_in], order=order, mode="nearest")
     inside = (row_in >= -0.5) & (row_in <= image.shape[0] - 0.5) & (column_in >= -0.5) & (column_in <= image.shape[1] - 0.5)
     return np.where(inside, values, np.nan).reshape(shape)
 
@@ -168,13 +169,17 @@ class ImageStack:
                        metadata=dict(self.metadata, difference=True))
 
     def variability_map(self) -> np.ndarray:
-        """Return the robust per-pixel scatter over time, divided by its median over the image.
+        """Return the robust per-pixel scatter over time, in units of the expected noise.
 
-        Pixels typical of the field sit near one; variable sources stand out above it.
-        The median absolute deviation makes the map insensitive to a few outlier frames.
+        With pixel errors the scatter is divided by each pixel's median error, so constant
+        sources sit near one and only excess variability stands out; subtract a varying sky
+        level first. Without errors it is divided by the median scatter over the image. The
+        median absolute deviation makes the map insensitive to a few outlier frames.
         """
         good = self.good()
         deviation = 1.4826 * np.nanmedian(np.abs(good.flux - np.nanmedian(good.flux, axis=0)), axis=0)
+        if good.error is not None:
+            return deviation / np.nanmedian(good.error, axis=0)
         return deviation / np.nanmedian(deviation)
 
     def pixel_of(self, coordinate: SkyCoord) -> tuple[float, float]:
