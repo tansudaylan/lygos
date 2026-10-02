@@ -3,10 +3,12 @@ import numpy as np
 
 import pandas as pd
 import lygos
-from lygos.paths import get_data_path, get_repository_path, get_visuals_path
+from lygos.paths import get_data_path, get_visuals_path
 import ephesos
 import miletos
 import tdpy
+from pergamon.paths import get_data_path as get_pergamon_data_path
+from pergamon.paths import get_visuals_path as get_pergamon_visuals_path
 from tdpy import summgene
 
 import matplotlib.pyplot as plt
@@ -575,11 +577,11 @@ def cnfg_lindsey():
     from astropy import units as u
     from astropy.coordinates import SkyCoord
 
-    pathbase = os.environ['PERGAMON_DATA_PATH'] + '/featsupntess/'
-    pathdata = pathbase + 'data/'
-    pathimag = pathbase + 'imag/'
-    os.system('mkdir -p %s' % pathdata)
-    os.system('mkdir -p %s' % pathimag)
+    pathbase = str(get_pergamon_data_path() / 'featsupntess') + os.sep
+    pathdata = pathbase
+    pathimag = str(get_pergamon_visuals_path() / 'featsupntess') + os.sep
+    os.makedirs(pathdata, exist_ok=True)
+    os.makedirs(pathimag, exist_ok=True)
     for strgclus in [ \
                      'Cycle1-matched', \
                      'Cycle2-matched', \
