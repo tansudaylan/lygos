@@ -627,7 +627,7 @@ def cnfg_lindsey():
             numbtsec = len(listtsec)
             indxtsec = np.arange(numbtsec)
             for o in indxtsec:
-                cmnd = 'cp %s%s/%s/imag/* %s%s/imag/' % (pathbase, strgclus, dictoutp['strgtarg'], pathbase, strgclus)
+                cmnd = 'cp %s%s/%s/visuals/* %s%s/visuals/' % (pathbase, strgclus, dictoutp['strgtarg'], pathbase, strgclus)
                 print(cmnd)
                 os.system(cmnd)
                 pathsaverflxtarg = dictoutp['pathsaverflxtargsc%02d' % listtsec[o]]

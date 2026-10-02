@@ -1,5 +1,6 @@
 from tdpy.verbosity import print
 import os, datetime, fnmatch, time as timemodu
+from functools import partial
 import urllib.request
 import zipfile
 
@@ -612,7 +613,7 @@ def retr_cntpmodl(gdat, p, strgmodl, xpos, ypos, cnts, cntpbackscal, parapsfn, t
     return cntpmodl
 
 
-def retr_dictderipsfn(para, gdat):
+def retr_dictderipsfn(para, gdat, instrument_index):
     
     dictvarbderi = dict()
     
@@ -627,19 +628,19 @@ def retr_dictderipsfn(para, gdat):
     cntpbackscal = para[gdat.indxparapsfnback]
     parapsfn = para[gdat.indxparapsfnpsfn]
     
-    cntpmodl = retr_cntpmodl(gdat, p, 'fitt', xpos, ypos, cnts, cntpbackscal, parapsfn, 'pnts')
+    cntpmodl = retr_cntpmodl(gdat, instrument_index, 'fitt', xpos, ypos, cnts, cntpbackscal, parapsfn, 'pnts')
     dictvarbderi['cntpmodlsexp'] = cntpmodl
     
-    cntpmodlpnts = retr_cntpmodl(gdat, p, 'fitt', xpos, ypos, cnts, 0., parapsfn, 'pnts')
+    cntpmodlpnts = retr_cntpmodl(gdat, instrument_index, 'fitt', xpos, ypos, cnts, 0., parapsfn, 'pnts')
     dictvarbderi['cntpmodlpntssexp'] = cntpmodlpnts
     
     dictvarbderi['cntpresisexp'] = gdat.cntpdatasexp - cntpmodl
     
     if xpos.size > 1:
-        dictvarbderi['raticont'] = retr_raticonttotl(gdat, p, xpos, ypos, cnts, parapsfn)
+        dictvarbderi['raticont'] = retr_raticonttotl(gdat, instrument_index, xpos, ypos, cnts, parapsfn)
 
-    if xpos[0] == (gdat.numbside[p] - 1.) / 2. and ypos[0] == (gdat.numbside[p] - 1.) / 2. and xpos.size == 1:
-        intg = int((gdat.numbside[p] - 1.) / 2.)
+    if xpos[0] == (gdat.numbside[instrument_index] - 1.) / 2. and ypos[0] == (gdat.numbside[instrument_index] - 1.) / 2. and xpos.size == 1:
+        intg = int((gdat.numbside[instrument_index] - 1.) / 2.)
         dictvarbderi['fraccent'] = cntpmodlpnts[intg, intg] / np.sum(cntpmodlpnts)
 
     return dictvarbderi
@@ -672,7 +673,31 @@ def retr_raticonttotl(gdat, p, xpos, ypos, cnts, parapsfn):
     return raticonttotl
 
 
-def retr_llik(para, gdat):
+def _bind_psf_fit_callbacks(instrument_index):
+    return (
+        partial(retr_llik, instrument_index=instrument_index),
+        partial(retr_dictderipsfn, instrument_index=instrument_index),
+    )
+
+
+def _write_psf_posterior_medians(dictpmed, path):
+    print('Writing to %s...' % path)
+    pd.DataFrame([dictpmed]).to_csv(path, index=False)
+
+
+def _retr_psf_parameters_from_medians(typepsfnshap, dictpmed, numbparapsfnempi=0):
+    if typepsfnshap == 'gauscirc':
+        names = ('sigmpsfn',)
+    elif typepsfnshap == 'gauselli':
+        names = ('sigmpsfnxpos', 'sigmpsfnypos', 'fracskewpsfnxpos', 'fracskewpsfnypos')
+    elif typepsfnshap == 'empi':
+        names = tuple('amplpsfnempi%04d' % index for index in range(numbparapsfnempi))
+    else:
+        raise ValueError('PSF parameter medians are unavailable for %s.' % typepsfnshap)
+    return np.asarray([dictpmed[name] for name in names], dtype=float)
+
+
+def retr_llik(para, gdat, instrument_index):
     
     # parse the parameter vector
     if gdat.typefittpsfnposi == 'fixd':
@@ -686,7 +711,7 @@ def retr_llik(para, gdat):
     cntpbackscal = para[gdat.indxparapsfnback]
     parapsfn = para[gdat.indxparapsfnpsfn]
     
-    cntpmodl = retr_cntpmodl(gdat, p, 'fitt', xpos, ypos, cnts, cntpbackscal, parapsfn, gdat.typesour)
+    cntpmodl = retr_cntpmodl(gdat, instrument_index, 'fitt', xpos, ypos, cnts, cntpbackscal, parapsfn, gdat.typesour)
     
     chi2 = np.sum((gdat.cntpdatasexp - cntpmodl)**2 / gdat.cntpdatasexp)
     
@@ -3564,9 +3589,9 @@ def init( \
                         if dictlablscalparaderi is None:
                             dictlablscalparaderi = dict()
                         dictlablscalparaderi['fraccent'] = [['$f_p$', ''], 'self']
-                    retr_dictderi = retr_dictderipsfn
+                    retr_llik_callback, retr_dictderi = _bind_psf_fit_callbacks(p)
 
-                    dictsamp = sample_posterior(gdat, numbsampwalk, retr_llik, listnamepara, listlablpara, listscalpara, \
+                    dictsamp = sample_posterior(gdat, numbsampwalk, retr_llik_callback, listnamepara, listlablpara, listscalpara, \
                                          listminmpara, listmaxmpara, numbsampburnwalkinit=numbsampburnwalkinit, \
                                                 retr_dictderi=retr_dictderi, \
                                                 dictlablscalparaderi=dictlablscalparaderi, \
@@ -3599,9 +3624,7 @@ def init( \
                 
                     print('dictpmed')
                     print(dictpmed)
-                    print('Writing to %s...' % path)
-                    pd.DataFrame.from_dict(dictpmed).to_csv(path)
-                    #pd.DataFrame.from_dict(dictpmed).to_csv(path, index=False)
+                    _write_psf_posterior_medians(dictpmed, path)
                 
                 else:
                     print('Reading posterior median PRF parameters from %s...' % path)
@@ -3612,19 +3635,11 @@ def init( \
                 gdat.fitt.catl['cnts'] = np.empty(gdat.fitt.numbpnts[0])
                 for k in gdat.indxpnts:
                     gdat.fitt.catl['cnts'][k] = dictpmed['cnts%04d' % k]
-                if gdat.fitt.typepsfnshap == 'gauscirc':
-                    gdat.fitt.parapsfn = np.empty(1)
-                    gdat.fitt.parapsfn[0] = dictpmed['sigmpsfn']
-                if gdat.fitt.typepsfnshap == 'gauselli':
-                    gdat.fitt.parapsfn = np.empty(2)
-                    gdat.fitt.parapsfn[0] = dictpmed['sigmpsfnxpos']
-                    gdat.fitt.parapsfn[1] = dictpmed['sigmpsfnypos']
-                    gdat.fitt.parapsfn[2] = dictpmed['fracskewpsfnxpos']
-                    gdat.fitt.parapsfn[3] = dictpmed['fracskewpsfnypos']
-                if gdat.fitt.typepsfnshap == 'empi':
-                    gdat.fitt.parapsfn = np.empty(gdat.numbparapsfnempi)
-                    for r in gdat.indxparapsfnempi:
-                        gdat.fitt.parapsfn[r] = dictpmed['amplpsfnempi%04d' % r]
+                gdat.fitt.parapsfn = _retr_psf_parameters_from_medians(
+                    gdat.fitt.typepsfnshap,
+                    dictpmed,
+                    getattr(gdat, 'numbparapsfnempi', 0),
+                )
             
             else:
                 

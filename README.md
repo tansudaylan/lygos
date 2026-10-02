@@ -52,7 +52,7 @@ pip install -e .
 export LYGOS_PATH=/path/to/lygos
 ```
 
-`LYGOS_PATH` identifies the repository root, whose `data/` and `visuals/` directories are ignored by Git. The workflow separately expects a configured working-data directory, typically via `LYGOS_DATA_PATH` or an explicit project path; that existing variable retains its dataset and output semantics.
+`LYGOS_PATH` identifies the repository root. Runtime data and downloaded mission caches belong under its ignored `data/` directory, while generated figures belong under its ignored `visuals/` directory. Functions accept explicit paths when a workflow needs an isolated run directory.
 
 ## Minimal usage
 
