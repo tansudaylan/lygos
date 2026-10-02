@@ -31,6 +31,16 @@ lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
 
 Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_images/`, and `examples/roman_time_domain_supernova/` use only public data.
 
+## Pixel-level variability
+
+`ImageStack.variability_map()` measures scatter relative to the pixel uncertainties when available. `ImageStack.relative_variability_map()` instead reports robust scatter as a percentage of each pixel's median flux. The public Sector 1 example plots the median image, relative variability, and the most variable source pixel's light curve.
+
+```bash
+python examples/tess_pixel_variability/tess_pixel_variability.py
+```
+
+![TESS Sector 1 pixel variability around pi Mensae](examples/tess_pixel_variability/visuals/tess_pixel_variability.png)
+
 ## Image-based photometry
 Lygos inspects target-pixel images, models or extracts stellar fluxes from image stacks, assesses contamination from nearby sources, and produces light curves with image-level diagnostics.
 

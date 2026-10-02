@@ -56,6 +56,45 @@ def test_background_difference_and_variability_isolate_the_variable_star():
     assert abs(np.median(difference.flux[:, 10, 10])) < 5.0
 
 
+def test_relative_variability_products_use_good_frames_and_ignore_invalid_pixels():
+    flux = np.array([
+        [[9.0, 20.0], [30.0, np.nan]],
+        [[10.0, 20.0], [33.0, np.nan]],
+        [[11.0, 20.0], [27.0, np.nan]],
+        [[100.0, 40.0], [20.0, np.nan]],
+    ])
+    stack = ImageStack(flux=flux, time=np.arange(4), quality=[0, 0, 0, 1])
+
+    products = lygos.compute_variability_products(stack)
+
+    np.testing.assert_allclose(products["temporal_median"][:2, :1], [[10.0], [30.0]])
+    np.testing.assert_allclose(products["relative_variability_percent"][:2, :1], [[14.826], [14.826]])
+    assert products["relative_variability_percent"][0, 1] == 0.0
+    assert np.isnan(products["temporal_median"][1, 1])
+    np.testing.assert_allclose(stack.relative_variability_map(), products["relative_variability_percent"])
+
+
+def test_relative_variability_plot_writes_nonblank_image(tmp_path):
+    time = np.arange(5, dtype=float)
+    flux = np.full((5, 3, 3), 100.0)
+    flux[:, 1, 2] = np.array([80.0, 100.0, 120.0, 100.0, 80.0])
+    stack = ImageStack(flux=flux, time=time, time_format="BTJD", label="Test stack")
+    output_path = tmp_path / "variability.png"
+
+    products = lygos.plot_variability_summary(stack, output_path)
+
+    image = Image.open(output_path)
+    assert image.width > 100 and image.height > 100
+    assert np.nanargmax(products["relative_variability_percent"]) == 5
+
+
+def test_relative_variability_rejects_fewer_than_two_good_frames():
+    stack = ImageStack(flux=np.ones((2, 3, 3)), time=[0.0, 1.0], quality=[0, 1])
+
+    with pytest.raises(ValueError, match="two good time samples"):
+        lygos.compute_variability_products(stack)
+
+
 def test_aperture_photometry_recovers_injected_flux_and_variability():
     stack = synthetic_stack().subtract_background()
     aperture = stack.circular_aperture(5.0)

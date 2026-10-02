@@ -177,10 +177,18 @@ class ImageStack:
         median absolute deviation makes the map insensitive to a few outlier frames.
         """
         good = self.good()
-        deviation = 1.4826 * np.nanmedian(np.abs(good.flux - np.nanmedian(good.flux, axis=0)), axis=0)
+        from .variability import _robust_scatter_map
+
+        deviation = _robust_scatter_map(good.flux)
         if good.error is not None:
             return deviation / np.nanmedian(good.error, axis=0)
         return deviation / np.nanmedian(deviation)
+
+    def relative_variability_map(self) -> np.ndarray:
+        """Return robust per-pixel variability as a percentage of each pixel's median flux."""
+        from .variability import compute_variability_products
+
+        return compute_variability_products(self)["relative_variability_percent"]
 
     def pixel_of(self, coordinate: SkyCoord) -> tuple[float, float]:
         """Return the (column, row) pixel position of a sky coordinate."""

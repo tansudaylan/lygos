@@ -27,6 +27,12 @@ Visualization
 .. automodule:: lygos.visualization
    :members:
 
+Variability
+-----------
+
+.. automodule:: lygos.variability
+   :members:
+
 Paths
 -----
 

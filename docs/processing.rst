@@ -37,6 +37,12 @@ Background and differences
    returns the robust per-pixel scatter over time divided by the median pixel
    uncertainty. Pixels of constant sources sit near one. Subtract a varying sky level
    first.
+:meth:`~lygos.imagestack.ImageStack.relative_variability_map`
+   returns each pixel's robust scatter as a percentage of its median flux.
+   :func:`lygos.compute_variability_products` also returns the temporal median image.
+   :func:`lygos.plot_variability_summary` plots the median image, relative-scatter map,
+   and time series of the most variable source pixel. The example in
+   ``examples/tess_pixel_variability/`` uses observed TESS Sector 1 data of pi Mensae.
 
 Apertures and photometry
 ------------------------
