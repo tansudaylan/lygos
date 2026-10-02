@@ -30,6 +30,7 @@ import tdpy
 from pcat import plot_population_grid
 from pcat.fixed import sample_posterior
 from tdpy.util import summgene
+from lygos.paths import get_data_path, get_repository_path, get_visuals_path
 
 import nicomedia
 import miletos
@@ -90,7 +91,7 @@ def read_psfntess(a, b, k, l):
     indxrowsthis = np.argmin(abs(k - indxrows))
     indxcolsthis = np.argmin(abs(l - indxcols))
     
-    pathdata = os.environ['LYGOS_DATA_PATH'] + '/tesspsfn/'
+    pathdata = str(get_data_path() / 'tesspsfn') + os.sep
     pathsubs = pathdata + 'tess_prf-master/cam%d_ccd%d/' % (a, b)
     if a == 2 and b == 4 or a > 2:
         path = pathsubs + 'tess2018243163601-prf-%d-%d-row%04d-col%04d.fits' % (a, b, indxrows[indxrowsthis], indxcols[indxcolsthis])
@@ -1189,9 +1190,9 @@ def init( \
     print('')
     print('lygos initialized at %s...' % gdat.strgtimestmp)
     # paths
-    gdat.pathbase = os.environ['LYGOS_DATA_PATH'] + '/'
-    gdat.pathvisulygo = gdat.pathbase + 'visuals/'
-    gdat.pathdatalygo = gdat.pathbase + 'data/'
+    gdat.pathbase = str(get_data_path()) + os.sep
+    gdat.pathvisulygo = str(get_visuals_path()) + os.sep
+    gdat.pathdatalygo = str(get_data_path()) + os.sep
     
     np.set_printoptions(linewidth=200, \
                         precision=5, \
@@ -2501,7 +2502,7 @@ def init( \
         
         import imageio
 
-        pathepic = os.environ['LYGOS_DATA_PATH'] + '/data/epic_1b_20221020180856.png'
+        pathepic = str(get_data_path() / 'epic_1b_20221020180856.png')
         print('Reading from %s...' % pathepic)
         gdat.imagepic = np.mean(imageio.imread(pathepic).astype(float), 2)
         intg = 32

@@ -3,6 +3,7 @@ import numpy as np
 
 import pandas as pd
 import lygos
+from lygos.paths import get_data_path, get_repository_path, get_visuals_path
 import ephesos
 import miletos
 import tdpy
@@ -10,7 +11,7 @@ from tdpy import summgene
 
 import matplotlib.pyplot as plt
 
-# first, make sure that the environment variable $LYGOS_DATA_PATH is set to the folder, where you would like the output plots and data to appear
+# Set LYGOS_PATH to the repository root. Runtime files are stored in its data/ and visuals/ directories.
 
 def cnfg_lsst_exop():
     '''
@@ -262,8 +263,8 @@ def cnfg_syst(typeanls):
     else:
         typedata, typemult = typeanls.split('_')
     
-    pathbase = os.environ['LYGOS_DATA_PATH'] + '/syst/'
-    pathimag = pathbase + 'imag/'
+    pathbase = str(get_data_path() / 'syst') + os.sep
+    pathimag = str(get_visuals_path()) + os.sep
     
     numbside = 11
 
@@ -433,7 +434,7 @@ def cnfg_GJ299():
 
 def cnfg_spec():
     
-    path = os.environ['LYGOS_DATA_PATH'] + '/data/List_for_MIT_pilot.txt'
+    path = str(get_data_path() / 'List_for_MIT_pilot.txt')
     data = np.loadtxt(path, delimiter='\t', skiprows=1)
     numbtarg = data.shape[0]
     indxtarg = np.arange(numbtarg)
@@ -448,10 +449,10 @@ def cnfg_spec():
     
 def cnfg_saul():
     
-    path = os.environ['LYGOS_DATA_PATH'] + '/data/list_saul.txt'
+    path = str(get_data_path() / 'list_saul.txt')
     strgclus = 'saul'
 
-    pathbase = os.environ['LYGOS_DATA_PATH'] + '/%s/' % strgbase
+    pathbase = str(get_data_path() / strgbase) + os.sep
     os.system('mkdir -p %s' % pathbase)
 
     listticitarg = []
@@ -488,7 +489,7 @@ def cnfg_SPECULOOS():
 
 def cnfg_arry(strgclus):
     
-    pathdata = os.environ['LYGOS_DATA_PATH'] + '/data/'
+    pathdata = str(get_data_path()) + os.sep
     if strgclus == 'KeplerEBs':
         path = pathdata + 'KeplerEBs/Kepler_binaries_priority.csv'
     else:
@@ -522,7 +523,7 @@ def chec_runs():
     
     strg = 'spec1313'
 
-    path = os.environ['LYGOS_DATA_PATH'] + '/'
+    path = str(get_data_path()) + os.sep
     liststrgfile = fnmatch.filter(os.listdir(path), '%s_*' % strg)
     numb = len(liststrgfile)
     listbool = np.zeros(numb, dtype=bool)
@@ -641,7 +642,7 @@ def cnfg_DJ():
     indxname = np.arange(numbname)
     for n in indxname:
         strgclus = listname[n]
-        path = os.environ['LYGOS_DATA_PATH'] + '/data/djjj/' + listname[n]
+        path = str(get_data_path() / 'djjj' / listname[n])
         print('Reading from %s...' % path)
         arry = np.loadtxt(path, delimiter=' ')
         rasc = arry[:, 0]
@@ -691,7 +692,7 @@ def cnfg_ASASSN20qc():
     labltarg = 'ASASSN-20qc'
     
     refrlistlabltser = [['Michael']]
-    path = os.environ['LYGOS_DATA_PATH'] + '/data/lc_2020adgm_cleaned_ASASSN20qc'
+    path = str(get_data_path() / 'lc_2020adgm_cleaned_ASASSN20qc')
     print('Reading from %s...' % path)
     objtfile = open(path, 'r')
     k = 0
