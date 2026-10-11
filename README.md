@@ -1,7 +1,7 @@
 # Lygos
 
 ## Purpose
-Lygos retrieves, processes, visualizes, and animates images from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, and extracts TESS light curves with image-based photometry. Documentation is at https://lygos.readthedocs.io and its source in `docs/`.
+Lygos starts with the pixels. It retrieves and works with image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
 
 ## Images from TESS and Roman
 Every retrieval returns one `ImageStack`, a time-ordered cube of images with times, uncertainties, quality flags, and sky coordinates. Background subtraction, difference imaging, variability maps, apertures, aperture photometry, centroids, plots, and animations therefore work the same way for every product.
@@ -42,7 +42,7 @@ python examples/tess_pixel_variability/tess_pixel_variability.py
 ![TESS Sector 1 pixel variability around pi Mensae](examples/tess_pixel_variability/visuals/tess_pixel_variability.png)
 
 ## Image-based photometry
-Lygos inspects target-pixel images, models or extracts stellar fluxes from image stacks, assesses contamination from nearby sources, and produces light curves with image-level diagnostics.
+Lygos works from target-pixel images to model or extract stellar fluxes, assess contamination from nearby sources, and produce light curves that can be traced back to the images.
 
 ## Installation
 
