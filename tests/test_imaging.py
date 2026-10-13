@@ -131,6 +131,23 @@ def test_resampling_preserves_identity_and_tracks_sky_offsets():
     assert (weight * columns).sum() / weight.sum() == pytest.approx(17.0, abs=0.05)
 
 
+def test_resampling_rejects_nonfinite_input_pixels():
+    image = gaussian_scene(31, (15.0, 15.0), sky=0.0)
+    image[15, 15] = np.nan
+    grid = tangent_plane_wcs(CENTER, 31, 0.11)
+
+    with pytest.raises(ValueError, match='finite pixels'):
+        resample_image(image, grid, grid, (31, 31))
+
+
+def test_centroid_rejects_nonfinite_flux_inside_aperture():
+    stack = synthetic_stack()
+    stack.flux[0, 10, 10] = np.nan
+
+    with pytest.raises(ValueError, match='non-finite flux'):
+        stack.centroid(stack.circular_aperture(4.0))
+
+
 def test_read_tess_cutout_parses_tesscut_files(tmp_path):
     stack = synthetic_stack(number=5)
     columns = fits.ColDefs([

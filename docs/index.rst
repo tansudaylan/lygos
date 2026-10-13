@@ -1,12 +1,15 @@
 lygos
 =====
 
-lygos retrieves, processes, visualizes, and animates images from the Transiting
+I start with the pixels when I want to understand where a light curve came from.
+Lygos retrieves, processes, visualizes, and animates images from the Transiting
 Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope. Every
 retrieval returns one :class:`~lygos.imagestack.ImageStack`, a time-ordered cube of
 images with times, uncertainties, quality flags, and sky coordinates. The same
 background subtraction, difference imaging, aperture photometry, plotting, and
-animation tools therefore apply to every mission and product.
+animation tools therefore apply to every mission and product. A neighboring
+source can share the aperture, so inspecting the pixels helps explain what went
+into the measured flux.
 
 .. list-table::
    :header-rows: 1

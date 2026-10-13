@@ -37,11 +37,14 @@ def resample_image(image: np.ndarray, wcs_in: WCS, wcs_out: WCS, shape: tuple[in
     """
     from scipy.ndimage import map_coordinates
 
+    image = np.asarray(image)
+    if not np.isfinite(image).all():
+        raise ValueError("Input image must contain only finite pixels before resampling")
+
     rows, columns = np.indices(shape)
     sky = wcs_out.pixel_to_world(columns.ravel(), rows.ravel())
     column_in, row_in = wcs_in.world_to_pixel(sky)
-    # nearest-edge extension keeps the spline finite; pixels outside the input are masked below
-    values = map_coordinates(np.nan_to_num(image), [row_in, column_in], order=order, mode="nearest")
+    values = map_coordinates(image, [row_in, column_in], order=order, mode="nearest")
     inside = (row_in >= -0.5) & (row_in <= image.shape[0] - 0.5) & (column_in >= -0.5) & (column_in <= image.shape[1] - 0.5)
     return np.where(inside, values, np.nan).reshape(shape)
 
@@ -244,10 +247,12 @@ class ImageStack:
                 "unit": self.unit, "time_format": self.time_format}
 
     def centroid(self, aperture: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
-        """Return the flux-weighted (column, row) centroid of every frame within an aperture."""
+        """Return positive-flux-weighted centroids; reject non-finite aperture pixels."""
         mask = np.ones(self.flux.shape[1:], dtype=bool) if aperture is None else np.asarray(aperture, dtype=bool)
         rows, columns = np.indices(self.flux.shape[1:])
-        weight = np.where(mask[None], np.clip(np.nan_to_num(self.flux), 0.0, None), 0.0)
+        if not np.isfinite(self.flux[:, mask]).all():
+            raise ValueError("Centroid aperture contains non-finite flux pixels")
+        weight = np.where(mask[None], np.clip(self.flux, 0.0, None), 0.0)
         total = weight.sum(axis=(1, 2))
         with np.errstate(invalid="ignore", divide="ignore"):
             return (weight * columns).sum(axis=(1, 2)) / total, (weight * rows).sum(axis=(1, 2)) / total

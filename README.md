@@ -1,7 +1,7 @@
 # Lygos
 
 ## Purpose
-Lygos starts with the pixels. It retrieves and works with image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
+I start with the pixels when I want to understand where a light curve came from. Lygos retrieves image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. A neighboring star can contribute flux to a target's aperture, so I want to know who is sharing the pixels. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
 
 ## Images from TESS and Roman
 Every retrieval returns one `ImageStack`, a time-ordered cube of images with times, uncertainties, quality flags, and sky coordinates. Background subtraction, difference imaging, variability maps, apertures, aperture photometry, centroids, plots, and animations therefore work the same way for every product.
@@ -45,7 +45,7 @@ Install `python -m pip install -e '.[bokeh]'` to write the interactive variabili
 ![TESS Sector 1 pixel variability around pi Mensae](examples/tess_pixel_variability/visuals/tess_pixel_variability.png)
 
 ## Image-based photometry
-Lygos works from target-pixel images to model or extract stellar fluxes, assess contamination from nearby sources, and produce light curves that can be traced back to the images.
+I use the target-pixel images to model or extract stellar flux, assess nearby-source contamination, and retain a light curve I can trace back to the aperture or image model.
 
 For PSF fitting, Lygos evaluates the image likelihood and delegates posterior inference to PCAT. PCAT is a required dependency, and the dependency map marks this direct image-inference path.
 
@@ -70,7 +70,7 @@ import lygos
 # lygos.main.init(toiitarg=1233)
 ```
 
-The package is designed to run through the importable workflow entry points rather than through ad hoc local scripts.
+Use the importable workflow entry points when running a target analysis. The public examples keep the data retrieval and image calculations visible.
 
 ## Public TESS target-pixel example
 
@@ -84,12 +84,12 @@ python examples/public_tess_target_pixel.py --typefileplot png
 
 The example queries the public Mikulski Archive for Space Telescopes (MAST) for the WASP-121 SPOC target-pixel products, selects TESS Sector 7, masks nonzero quality flags, and calculates the median 11 by 11 pixel count map with nearby TESS Input Catalog sources overlaid. The figure contains observed TESS data rather than a simulation and quantifies the image-level contamination context. This example does not extract a light curve.
 
-## Input, intermediate products, and outputs
-A good Lygos run should produce a visible chain of products:
+## Following the photometry
+For a target analysis, I want to inspect:
 
-- input image or target metadata;
-- extracted or modeled source apertures;
-- intermediate photometric diagnostics;
+- input image or target metadata
+- extracted or modeled source apertures
+- intermediate photometric comparisons
 - final target light curves and summary plots.
 
 Lygos writes these products under the configured data and visualization directories.
