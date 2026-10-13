@@ -13,7 +13,7 @@ release = "0.2.0"
 
 extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx.ext.mathjax", "sphinx.ext.viewcode"]
 # ecosystem and archive packages are not installed on Read the Docs, so autodoc imports stand-ins
-autodoc_mock_imports = ["tdpy", "miletos", "pcat", "nicomedia", "h5py", "pandas", "astroquery", "s3fs", "tesswcs"]
+autodoc_mock_imports = ["tdpy", "miletos", "pcat", "pergamon", "h5py", "pandas", "astroquery", "s3fs", "tesswcs"]
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
 napoleon_numpy_docstring = True

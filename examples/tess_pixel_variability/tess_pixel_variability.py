@@ -37,8 +37,9 @@ def run_example(typefileplot: str = "png") -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     add_plot_arguments(parser)
+    parser.add_argument("--bokeh", action="store_true", help="write an interactive HTML summary")
     arguments = parser.parse_args()
-    run_example(arguments.typefileplot)
+    run_example("html" if arguments.bokeh else arguments.typefileplot)
     return 0
 
 

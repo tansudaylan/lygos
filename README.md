@@ -37,7 +37,10 @@ Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_image
 
 ```bash
 python examples/tess_pixel_variability/tess_pixel_variability.py
+python examples/tess_pixel_variability/tess_pixel_variability.py --bokeh
 ```
+
+Install `python -m pip install -e '.[bokeh]'` to write the interactive variability maps and pixel light curve as standalone HTML.
 
 ![TESS Sector 1 pixel variability around pi Mensae](examples/tess_pixel_variability/visuals/tess_pixel_variability.png)
 

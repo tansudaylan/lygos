@@ -33,7 +33,7 @@ from pcat.fixed import sample_posterior
 from tdpy.util import summgene
 from lygos.paths import get_data_path, get_repository_path, get_visuals_path
 
-import nicomedia
+from pergamon import catalogs as population_catalogs
 import miletos
 
 
@@ -1233,7 +1233,7 @@ def init( \
                 raise Exception('truetmagtarg needs to be set when simulated data based on a generative model, are generated.')
 
     if gdat.ticitarg is not None or gdat.toiitarg is not None:
-        dicttoii = nicomedia.retr_dicttoii()
+        dicttoii = population_catalogs.retr_dicttoii()
         dicttoii = {
             name: valu[0] if isinstance(valu, list) and len(valu) == 2 and isinstance(valu[1], str) else valu
             for name, valu in dicttoii.items()
@@ -1795,7 +1795,7 @@ def init( \
             # get the list of sectors for which TPF data are available
             print('Retrieving the list of available TESS sectors for which there is higher-cadence SPOC TPF data...')
             # get observation tables
-            listtablobsv = nicomedia.retr_listtablobsv(gdat.strgmast)
+            listtablobsv = tdpy.retr_listtablobsv(gdat.strgmast)
             numbtablobsv = len(listtablobsv)
             print('%d observation tables have been found.' % numbtablobsv)
             listprodspoc = []

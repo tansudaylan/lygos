@@ -25,10 +25,10 @@ dependencies = [
   "h5py",
   "matplotlib",
   "miletos",
-  "nicomedia",
   "numpy",
   "pandas",
   "pcat",
+  "pergamon",
   "Pillow",
   "s3fs",
   "scipy",
@@ -36,6 +36,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+bokeh = ["bokeh>=3.4"]
 docs = ["sphinx>=8", "sphinx-rtd-theme>=3"]
 
 [project.urls]

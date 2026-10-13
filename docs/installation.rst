@@ -13,7 +13,7 @@ lygos needs Python 3.10 or later. The imaging layer uses ``numpy``, ``scipy``,
 ``astropy``, ``matplotlib``, ``Pillow``, ``astroquery`` for TESSCut and name
 resolution, ``s3fs`` for anonymous Amazon Web Services access, and ``tdpy`` for shared
 plotting, animation, and TESS pointing helpers. The image-based TESS photometry
-pipeline :func:`lygos.init` also needs ``miletos``, ``pcat``, ``nicomedia``,
+pipeline :func:`lygos.init` also needs ``miletos``, ``pcat``, ``pergamon``,
 ``h5py``, and ``pandas``.
 
 For PSF image fits, Lygos builds the detector-image likelihood and delegates
