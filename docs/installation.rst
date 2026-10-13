@@ -16,6 +16,9 @@ plotting, animation, and TESS pointing helpers. The image-based TESS photometry
 pipeline :func:`lygos.init` also needs ``miletos``, ``pcat``, ``nicomedia``,
 ``h5py``, and ``pandas``.
 
+For PSF image fits, Lygos builds the detector-image likelihood and delegates
+posterior inference to PCAT's sampler.
+
 Download cache
 --------------
 

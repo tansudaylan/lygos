@@ -44,6 +44,8 @@ python examples/tess_pixel_variability/tess_pixel_variability.py
 ## Image-based photometry
 Lygos works from target-pixel images to model or extract stellar fluxes, assess contamination from nearby sources, and produce light curves that can be traced back to the images.
 
+For PSF fitting, Lygos evaluates the image likelihood and delegates posterior inference to PCAT. PCAT is a required dependency, and the dependency map marks this direct image-inference path.
+
 ## Installation
 
 ```bash

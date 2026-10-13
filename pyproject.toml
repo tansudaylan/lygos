@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lygos"
 version = "0.1.0"
-description = "Retrieve, process, visualize, and animate TESS and Roman images, and extract TESS light curves."
+description = "Retrieve and model TESS and Roman images with PCAT, visualize image time series, and extract TESS light curves."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

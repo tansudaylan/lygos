@@ -4,7 +4,7 @@ setup(
     name = 'lygos',
     packages = find_packages(),
     version = '1.14',
-    description = 'PSF modeling of images in time domain astronomy', 
+    description = 'Image-based time-domain photometry with PCAT posterior inference',
     author = 'Tansu Daylan',
     author_email = 'tansu.daylan@gmail.com',
     url = 'https://github.com/tansudaylan/lygos',

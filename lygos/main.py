@@ -62,24 +62,8 @@ def down_tcut(gdat):
         archive.extractall(gdat.pathdatatargtcut)
 
 
-def retr_fluxfromtmag(tmag):
-    '''
-    Calculate the flux per second from the TESS magnitude
-    '''
-    
-    flux = 10**(0.4 * (20.4 - tmag)) # [e-/s]
-    
-    return flux
-
-
-def retr_tmagfromflux(flux):
-    '''
-    Calculate the TESS magnitude from flux per second
-    '''
-    
-    tmag = 20.4 - 2.5 * np.log10(flux)
-    
-    return tmag
+retr_fluxfromtmag = tdpy.retr_fluxfromtmag
+retr_tmagfromflux = tdpy.retr_tmagfromflux
 
 
 def read_psfntess(a, b, k, l):
@@ -757,17 +741,7 @@ def retr_llik(para, gdat, instrument_index):
     return llik
 
 
-#@jit(nopython=True, parallel=True, fastmath=True, nogil=True)
-def retr_mlikregr(cntpdataflat, matrdesi, variflat):
-    '''
-    Return the maximum likelihood estimate for linear regression.
-    '''
-    
-    varitdim = np.diag(variflat)
-    covafittcnts = np.linalg.inv(np.matmul(np.matmul(matrdesi.T, np.linalg.inv(varitdim)), matrdesi))
-    mlikfittcnts = np.matmul(np.matmul(np.matmul(covafittcnts, matrdesi.T), np.linalg.inv(varitdim)), cntpdataflat)
-    
-    return mlikfittcnts, covafittcnts
+retr_mlikregr = tdpy.retr_mlikregr
 
 
 def updt_strgsave(gdat, strgchun, x, y, p, o):

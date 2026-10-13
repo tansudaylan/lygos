@@ -4,6 +4,11 @@ from types import SimpleNamespace
 import os
 
 from lygos import main as lygos_main
+from pcat.fixed import sample_posterior as pcat_sample_posterior
+
+
+def test_psf_image_inference_uses_pcat_sampler():
+    assert lygos_main.sample_posterior is pcat_sample_posterior
 
 
 def test_psf_callbacks_use_explicit_instrument_and_write_scalar_medians(tmp_path, monkeypatch):
