@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from tdpy.numerics import robust_scatter
 from tdpy.plotting import save_figure
 
 from .imagestack import ImageStack
@@ -14,9 +15,7 @@ from .imagestack import ImageStack
 
 def _robust_scatter_map(values: np.ndarray) -> np.ndarray:
     """Return 1.4826 times the per-pixel median absolute deviation over time."""
-    masked = np.ma.masked_invalid(values)
-    center = np.ma.median(masked, axis=0)
-    return (1.4826 * np.ma.median(np.ma.abs(masked - center), axis=0)).filled(np.nan)
+    return robust_scatter(values, axis=0)
 
 
 def compute_variability_products(stack: ImageStack) -> dict[str, np.ndarray]:
@@ -71,7 +70,7 @@ def plot_variability_summary(
 
     finite_median = temporal_median[np.isfinite(temporal_median)]
     background_level = np.median(finite_median)
-    background_scatter = 1.4826 * np.median(np.abs(finite_median - background_level))
+    background_scatter = robust_scatter(finite_median)
     source_mask = temporal_median > background_level + 3.0 * background_scatter
     if not source_mask.any():
         source_mask = np.isfinite(temporal_median)
@@ -139,7 +138,7 @@ def plot_variability_summary_bokeh(
         raise ValueError("stack contains no pixel with a valid nonzero median flux")
     finite_median = temporal_median[np.isfinite(temporal_median)]
     background_level = np.median(finite_median)
-    background_scatter = 1.4826 * np.median(np.abs(finite_median - background_level))
+    background_scatter = robust_scatter(finite_median)
     source_mask = temporal_median > background_level + 3.0 * background_scatter
     if not source_mask.any():
         source_mask = np.isfinite(temporal_median)

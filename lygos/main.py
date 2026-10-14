@@ -527,6 +527,13 @@ def retr_pathvisu(gdat, \
     return pathvisu
 
 
+def _retr_epic_image_grid(image):
+    """Return centered x/y meshes with the existing two-unit sample spacing."""
+    x_axis = 2.0 * (np.arange(image.shape[1], dtype=float) - 0.5 * (image.shape[1] - 1))
+    y_axis = 2.0 * (np.arange(image.shape[0], dtype=float) - 0.5 * (image.shape[0] - 1))
+    return np.meshgrid(x_axis, y_axis)
+
+
 def retr_cntpmodl(gdat, p, strgmodl, xpos, ypos, cnts, cntpbackscal, parapsfn, typesour):
     '''
     Calculate the model image
@@ -561,8 +568,12 @@ def retr_cntpmodl(gdat, p, strgmodl, xpos, ypos, cnts, cntpbackscal, parapsfn, t
                     psfnsour = gausbvar + parapsfn[2] * deltxpos * gausbvar + parapsfn[3] * deltypos * gausbvar
                     psfnsour[psfnsour < 0] = 0.
                 if gmod.typepsfnshap == 'empi':
-                    z = parapsfn.reshape((gdat.numbsidepsfnfitt, gdat.numbsidepsfnfitt))
-                    psfnsour = scipy.interpolate.interp2d(gdat.xposimagpsfn[p], gdat.yposimagpsfn[p], z, kind='cubic', fill_value=0.)(gdat.xposimag[p], gdat.yposimag[p])
+                    psf_values = parapsfn.reshape((gdat.numbsidepsfnfitt, gdat.numbsidepsfnfitt))
+                    psf_interpolator = tdpy.RectilinearInterpolator2D(
+                        gdat.xposimagpsfn[p] - np.mean(gdat.xposimagpsfn[p]),
+                        gdat.yposimagpsfn[p] - np.mean(gdat.yposimagpsfn[p]), psf_values,
+                    )
+                    psfnsour = psf_interpolator(deltxpos, deltypos, grid=False)
 
                 if gmod.typepsfnshap == 'pfre':
                     psfnsour = coef[0] * deltxpos + coef[1] * deltypos + coef[2] * deltxpos * deltypos + \
@@ -570,7 +581,7 @@ def retr_cntpmodl(gdat, p, strgmodl, xpos, ypos, cnts, cntpbackscal, parapsfn, t
                                     coef[7] * deltxpos**3 + coef[8] * deltypos**3 + coef[9] * np.exp(-deltxpos**2 / coef[10] - deltypos**2 / coef[11])
                 
                 if cnts.ndim == 2:
-                    cntpmodl[arryxposmesh, arryyposmesh] += cnts[None, None, :, k] * psfnsour[:, :, None]
+                    cntpmodl[arryxposmesh, arryyposmesh] += cnts[:, k][None, :] * psfnsour[:, None]
                 else:
                     cntpmodl[arryxposmesh, arryyposmesh] += cnts[k] * psfnsour
         
@@ -2507,16 +2518,7 @@ def init( \
         intg = 32
         gdat.imagepic = tdpy.rebn_arry(gdat.imagepic, (int(gdat.imagepic.shape[0] / intg), int(gdat.imagepic.shape[1] / intg)))
 
-        gdat.xposepic = np.arange(gdat.imagepic.shape[0]).astype(float)
-        gdat.yposepic = np.arange(gdat.imagepic.shape[1]).astype(float)
-        
-        gdat.xposepic -= np.mean(gdat.xposepic)
-        gdat.yposepic -= np.mean(gdat.yposepic)
-        
-        gdat.xposepic *= 2.
-        gdat.yposepic *= 2.
-
-        gdat.xposepic, gdat.yposepic = np.meshgrid(gdat.xposepic, gdat.yposepic)
+        gdat.xposepic, gdat.yposepic = _retr_epic_image_grid(gdat.imagepic)
     
         indx = np.where(gdat.imagepic > 0)
         print('indx[0]')
@@ -2535,7 +2537,7 @@ def init( \
         plt.savefig(path)
         plt.close()
             
-        gdat.funcintpepic = scipy.interpolate.interp2d(gdat.xposepic, gdat.yposepic, gdat.imagepic, kind='cubic', fill_value=0.)
+        gdat.funcintpepic = tdpy.RectilinearInterpolator2D(gdat.xposepic, gdat.yposepic, gdat.imagepic)
     
     gdat.dictoutp['listipnt'] = [[] for p in gdat.indxinst]
     for p in gdat.indxinst:
@@ -2966,8 +2968,6 @@ def init( \
                 gdat.cntpdatapsfn = gdat.cntpdatatmed - np.percentile(gdat.cntpdatatmed, 90.)
                 gdat.cntpdatapsfn[np.where(gdat.cntpdatapsfn < 0)] = 0
                 gdat.cntpdatapsfn /= np.mean(gdat.cntpdatapsfn)
-                #gdat.funcintppsfn = scipy.interpolate.interp2d(gdat.xposimagpsfn, gdat.yposimagpsfn, gdat.cntpdatapsfn, \
-                #                                      kind='cubic', fill_value=0.)(gdat.xposimag[p], gdat.yposimag[p])
         
             if 'aper' in gdat.listnameanls:
                 if gdat.listpixlapertarg is None:

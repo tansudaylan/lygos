@@ -35,6 +35,35 @@ def synthetic_stack(number=30, size=21, seed=0):
                       mission="TESS", label="synthetic")
 
 
+@pytest.fixture
+def legacy_prf_extractor():
+    """Load the extraction routine without executing the file's network demos."""
+    import ast
+    from pathlib import Path
+
+    source = ast.parse(Path(lygos.__file__).with_name("read_tess_prfn.py").read_text())
+    function = next(
+        node for node in source.body
+        if isinstance(node, ast.FunctionDef) and node.name == "getRegSampledPrfFitsByOffset"
+    )
+    namespace = {"np": np}
+    exec(compile(ast.Module(body=[function], type_ignores=[]), "<legacy-prf-extraction>", "exec"), namespace)
+    return namespace[function.name]
+
+
+@pytest.mark.parametrize("column_offset, row_offset", [(0, 0), (3, 5), (8, 8), (-1, 4)])
+def test_tess_prf_extraction_preserves_interleaving_and_copy_semantics(legacy_prf_extractor, column_offset, row_offset):
+    interleaved = np.arange(117 * 117).reshape(117, 117)
+    rows = row_offset + np.arange(13) * 9
+    columns = column_offset + np.arange(13) * 9
+    expected = interleaved[np.ix_(rows, columns)]
+    extracted = legacy_prf_extractor(interleaved, column_offset, row_offset)
+    np.testing.assert_array_equal(extracted, expected)
+    assert extracted.shape == (13, 13)
+    assert extracted.dtype == interleaved.dtype
+    assert not np.shares_memory(extracted, interleaved)
+
+
 def test_stack_selection_quality_and_concatenation():
     stack = synthetic_stack()
     assert stack.shape == (30, 21, 21)
@@ -56,7 +85,15 @@ def test_background_difference_and_variability_isolate_the_variable_star():
     assert abs(np.median(difference.flux[:, 10, 10])) < 5.0
 
 
-def test_relative_variability_products_use_good_frames_and_ignore_invalid_pixels():
+def test_relative_variability_products_use_good_frames_and_ignore_invalid_pixels(monkeypatch):
+    from importlib import import_module
+    from unittest.mock import Mock
+    from tdpy.numerics import robust_scatter
+
+    variability = import_module("lygos.variability")
+    assert variability.robust_scatter is robust_scatter
+    shared_scatter = Mock(wraps=robust_scatter)
+    monkeypatch.setattr(variability, "robust_scatter", shared_scatter)
     flux = np.array([
         [[9.0, 20.0], [30.0, np.nan]],
         [[10.0, 20.0], [33.0, np.nan]],
@@ -72,6 +109,8 @@ def test_relative_variability_products_use_good_frames_and_ignore_invalid_pixels
     assert products["relative_variability_percent"][0, 1] == 0.0
     assert np.isnan(products["temporal_median"][1, 1])
     np.testing.assert_allclose(stack.relative_variability_map(), products["relative_variability_percent"])
+    assert shared_scatter.call_count == 2
+    assert all(call.kwargs == {"axis": 0} for call in shared_scatter.call_args_list)
 
 
 def test_relative_variability_plot_writes_nonblank_image(tmp_path):

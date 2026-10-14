@@ -182,18 +182,9 @@ def getRegSampledPrfFitsByOffset(prfArray, colOffset, rowOffset):
     assert colOffset < gridSize
     assert rowOffset < gridSize
 
-    # Number of pixels in regularly sampled PRF. Should be 13x13
-    nColOut, nRowOut = prfArray.shape
-    nColOut /= float(gridSize)
-    nRowOut /= float(gridSize)
-
-    iCol = colOffset + (np.arange(nColOut) * gridSize).astype(np.int)
-    iRow = rowOffset + (np.arange(nRowOut) * gridSize).astype(np.int)
-
-    tmp = prfArray[iRow, :]
-    prf = tmp[:,iCol]
-
-    return prf
+    row_indices = rowOffset + np.arange(0, prfArray.shape[0], gridSize)
+    column_indices = colOffset + np.arange(0, prfArray.shape[1], gridSize)
+    return prfArray[np.ix_(row_indices, column_indices)]
 
 
 

@@ -12,10 +12,9 @@ image so that the supernova stands out.
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
-from tdpy.cli import add_plot_arguments
+from tdpy.cli import run_plot_cli
 
 import lygos
 
@@ -55,11 +54,7 @@ def run_example(typefileplot: str = "png") -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    add_plot_arguments(parser)
-    arguments = parser.parse_args()
-    run_example(arguments.typefileplot)
-    return 0
+    return run_plot_cli(run_example, description=__doc__)
 
 
 if __name__ == "__main__":
