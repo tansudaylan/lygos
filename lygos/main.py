@@ -43,6 +43,36 @@ def identify_tpf_sectors(selected_sectors, available_tpf_sectors):
     return tdpy.retr_boolsubb(selected_sectors, available_tpf_sectors)
 
 
+def _build_tess_past_flags(number_pointings, tess_sectors, current_sector):
+    """Return a TESS-past mask padded for pointings from other instruments."""
+    number_pointings = np.asarray(number_pointings, dtype=int)
+    tess_sectors = np.asarray(tess_sectors, dtype=int)
+    if number_pointings.ndim != 1 or np.any(number_pointings < 0):
+        raise ValueError("number_pointings must be a one-dimensional nonnegative array")
+    if tess_sectors.ndim != 1:
+        raise ValueError("tess_sectors must be a one-dimensional array")
+    maximum_pointings = int(number_pointings.max(initial=0))
+    if tess_sectors.size > maximum_pointings:
+        raise ValueError("TESS sector count cannot exceed the maximum instrument pointing count")
+    flags = np.zeros(maximum_pointings, dtype=bool)
+    flags[:tess_sectors.size] = tess_sectors < current_sector
+    return flags
+
+
+def _indices_sources_in_cutout(x_position, y_position, number_side):
+    """Return catalog rows whose pixel centers fall inside an image cutout."""
+    x_position = np.asarray(x_position, dtype=float)
+    y_position = np.asarray(y_position, dtype=float)
+    if x_position.shape != y_position.shape:
+        raise ValueError("source x and y positions must have matching shapes")
+    return np.flatnonzero(
+        (x_position > -0.5)
+        & (x_position < number_side - 0.5)
+        & (y_position > -0.5)
+        & (y_position < number_side - 0.5)
+    )
+
+
 def down_tcut(gdat):
             
     #strgsrch = '%g %g' % (gdat.rasctarg, gdat.decltarg)
@@ -1997,6 +2027,7 @@ def init( \
     gdat.numbpoin = np.ones(gdat.numbinst, dtype=int)
     for p in gdat.indxinst:
         gdat.numbpoin[p] = gdat.listipnt[p].size
+    gdat.booltesspast = _build_tess_past_flags(gdat.numbpoin, [], 65)
     
     # TESS-specific
     if booltessanyy:
@@ -2022,7 +2053,9 @@ def init( \
 
         # Boolean flag to indicate TESS data in the "past"
         ## if False, it means the data must be simulated
-        gdat.booltesspast = gdat.listtsec < gdat.tseccurr
+        gdat.booltesspast = _build_tess_past_flags(
+            gdat.numbpoin, gdat.listtsec, gdat.tseccurr
+        )
             
     if gdat.boolterm:
         return gdat.dictoutp
@@ -2171,14 +2204,14 @@ def init( \
     print('gdat.typecade')
     print(gdat.typecade)
 
-    # read TESS PSF
-    pathpsfn = gdat.pathdatalygo + 'tesspsfn/listpsfn.h5'
-    print('Reading from %s...' % pathpsfn)
-    objth5py = h5py.File(pathpsfn, 'r')
-    listpsfn = objth5py.get('listpsfn')
-    cntppsfntess = np.array(listpsfn)[0, 0, 0, 0, :, :]
-    cntppsfntess /= np.sum(cntppsfntess)
-    objth5py.close()
+    cntppsfntess = None
+    if gdat.typepsfnsubp == 'regrcubipixl':
+        pathpsfn = gdat.pathdatalygo + 'tesspsfn/listpsfn.h5'
+        print('Reading from %s...' % pathpsfn)
+        with h5py.File(pathpsfn, 'r') as objth5py:
+            listpsfn = objth5py.get('listpsfn')
+            cntppsfntess = np.array(listpsfn)[0, 0, 0, 0, :, :]
+        cntppsfntess /= np.sum(cntppsfntess)
         
     #pathpsfn = gdat.pathdatalygo + 'tesspsfn.txt'
     #if not os.path.exists(pathpsfn):
@@ -2644,7 +2677,6 @@ def init( \
                         print('')
                         print('')
                         raise Exception('len(gdat.listhdundata[p][o]) == 0')
-                        print(len(gdat.listhdundata[p][o]) == 0)
                     
                     if isinstance(gdat.listhdundata[p][o], np.ndarray):
                         print('')
@@ -2693,6 +2725,12 @@ def init( \
                     if gdat.booltpxf[p][o] and gdat.numbside[p] < 11:
                         gdat.refr.catl[q][p][o]['xpos'] -= intg
                         gdat.refr.catl[q][p][o]['ypos'] -= intg
+
+            for q in gdat.refr.indxcatl:
+                catalog = gdat.refr.catl[q][p][o]
+                gdat.refr.indxpntswthn[q][p][o] = _indices_sources_in_cutout(
+                    catalog['xpos'], catalog['ypos'], gdat.numbside[p]
+                )
                     
             if gdat.boolsimutargsynt or gdat.liststrgtypedata[p] == 'simutargpartsynt':
                 if not os.path.exists(pathfitssimu):
@@ -2751,7 +2789,7 @@ def init( \
                                 #print(objt.ephemerides().RA)
                                 #raise Exception('')
                             
-                            gdat.cntpmodlsimu[:, :, t] = retr_cntpmodl(gdat, p, 'true', xpos, ypos, cnts, 0., gdat.true.parapsfn, typesour=typesour)
+                            gdat.cntpmodlsimu[:, :, t] += retr_cntpmodl(gdat, p, 'true', xpos, ypos, cnts, 0., gdat.true.parapsfn, typesour=typesour)
                     
                     ## add dark current
                     gdat.cntpmodlsimu += gdat.timeexpo[p][o] * 0.1 # [e-/s]
@@ -2866,8 +2904,11 @@ def init( \
                 gdat.refr.indxpnts[q][p][o] = np.arange(gdat.refr.numbpnts[q][p][o])
                 
                 ## indices of the reference catalog sources within the cutout
-                gdat.refr.indxpntswthn[q][p][o] = np.where((gdat.refr.catl[q][p][o]['xpos'] > -0.5) & (gdat.refr.catl[q][p][o]['xpos'] < gdat.numbside[p] - 0.5) & \
-                                                (gdat.refr.catl[q][p][o]['ypos'] > -0.5) & (gdat.refr.catl[q][p][o]['ypos'] < gdat.numbside[p] - 0.5))[0]
+                gdat.refr.indxpntswthn[q][p][o] = _indices_sources_in_cutout(
+                    gdat.refr.catl[q][p][o]['xpos'],
+                    gdat.refr.catl[q][p][o]['ypos'],
+                    gdat.numbside[p],
+                )
 
                 
                 print('Number of reference sources inside the cutout is %d...' % gdat.refr.indxpntswthn[q][p][o].size)

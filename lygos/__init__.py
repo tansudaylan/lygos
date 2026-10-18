@@ -1,10 +1,11 @@
 """Lygos package.
 
-Lygos retrieves, visualizes, and processes TESS and Roman images. TESS cutouts come from
-TESSCut and full-frame images from the public MAST bucket. Roman images come from the public
-OpenUniverse 2024 simulation. Every retrieval returns an :class:`ImageStack`, which supports
-background subtraction, difference imaging, aperture photometry, and animation. The
-image-based TESS photometry pipeline remains available as :func:`init`.
+Lygos retrieves, visualizes, and processes TESS and Roman images. It also synthesizes
+ULTRASAT image time series. TESS cutouts come from TESSCut and full-frame images from
+the public MAST bucket. Roman images come from the public OpenUniverse 2024 simulation.
+Every retrieval returns an :class:`ImageStack`, which supports background subtraction,
+difference imaging, aperture photometry, and animation. The image-based TESS photometry
+pipeline remains available as :func:`init`.
 """
 
 from .imagestack import ImageStack

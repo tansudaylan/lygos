@@ -210,6 +210,34 @@ class ImageStack:
             center = ((self.flux.shape[2] - 1) / 2.0, (self.flux.shape[1] - 1) / 2.0)
         return (columns - center[0]) ** 2 + (rows - center[1]) ** 2 <= radius ** 2
 
+    def polygon_aperture(self, vertices: np.ndarray) -> np.ndarray:
+        """Rasterize a custom polygon into a Boolean aperture mask.
+
+        Vertices are (column, row) pixel coordinates. Pixel centers on the polygon
+        boundary are included.
+        """
+        vertices = np.asarray(vertices, dtype=float)
+        if vertices.ndim != 2 or vertices.shape[0] < 3 or vertices.shape[1] != 2:
+            raise ValueError("vertices must have shape (at least 3, 2)")
+        if not np.isfinite(vertices).all():
+            raise ValueError("polygon vertices must be finite")
+        signed_area = 0.5 * np.sum(
+            vertices[:, 0] * np.roll(vertices[:, 1], -1)
+            - vertices[:, 1] * np.roll(vertices[:, 0], -1)
+        )
+        if np.isclose(signed_area, 0.0):
+            raise ValueError("polygon vertices must enclose a nonzero area")
+
+        from matplotlib.path import Path as PolygonPath
+
+        closed_vertices = vertices
+        if not np.array_equal(vertices[0], vertices[-1]):
+            closed_vertices = np.vstack((vertices, vertices[0]))
+        polygon = PolygonPath(closed_vertices, closed=True)
+        rows, columns = np.indices(self.flux.shape[1:])
+        pixel_centers = np.column_stack((columns.ravel(), rows.ravel()))
+        return polygon.contains_points(pixel_centers, radius=1e-9).reshape(rows.shape)
+
     def threshold_aperture(self, threshold: float = 3.0, center: tuple[float, float] | None = None) -> np.ndarray:
         """Return the connected pixels around ``center`` brighter than ``threshold`` sky deviations.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Retrieve, process, and animate a TESSCut time series of the RR Lyrae star RR Lyr.
+"""Retrieve, process, and animate RR Lyr TESSCut data with a custom aperture.
 
 Data: real TESS Sector 14 full-frame-image cutouts from the MAST TESSCut service
 (Brasseur et al. 2019). RR Lyr pulsates with a 0.567 day period, which is clear in
@@ -25,19 +25,26 @@ def run_example(typefileplot: str = "png", max_frames: int = 120) -> dict:
     """Download the cutout, build an aperture light curve, and write figures and an animation."""
     stack = lygos.get_tess_cutout(TARGET, sector=SECTOR, size=SIZE, cache_dir=lygos.get_cache_path("tess"))[0]
     good = stack.good()
-    aperture = good.threshold_aperture(threshold=5.0)
-    light_curve = good.aperture_photometry(aperture)
     target_pixel = good.pixel_of(lygos.resolve_coordinate(TARGET))
+    column, row = target_pixel
+    aperture = good.polygon_aperture([
+        (column - 4.0, row - 3.0),
+        (column + 3.0, row - 3.0),
+        (column + 4.0, row + 1.0),
+        (column + 2.0, row + 4.0),
+        (column - 4.0, row + 3.0),
+    ])
+    light_curve = good.aperture_photometry(aperture)
     paths = [
-        lygos.plot_image(good, VISUAL_PATH / "rrlyr_tesscut_median", aperture=aperture,
+        lygos.plot_image(good, VISUAL_PATH / "rrlyr_tesscut_custom_aperture", aperture=aperture,
                          markers={"RR Lyr": target_pixel}, typefileplot=typefileplot),
-        lygos.plot_light_curve(light_curve, VISUAL_PATH / "rrlyr_tesscut_light_curve",
-                               title=f"RR Lyr, TESS Sector {SECTOR}, {int(aperture.sum())} pixel aperture",
+        lygos.plot_light_curve(light_curve, VISUAL_PATH / "rrlyr_tesscut_custom_aperture_light_curve",
+                               title=f"RR Lyr, Sector {SECTOR}, custom {int(aperture.sum())}-pixel aperture",
                                typefileplot=typefileplot),
         lygos.plot_mosaic(good.select(slice(0, 120)), VISUAL_PATH / "rrlyr_tesscut_difference_mosaic",
                           difference=True, typefileplot=typefileplot),
         # the first 2.5 days at 10 minute cadence span four pulsation cycles
-        lygos.animate_stack(good.select(slice(0, max_frames)), VISUAL_PATH / "rrlyr_tesscut_animation",
+        lygos.animate_stack(good.select(slice(0, max_frames)), VISUAL_PATH / "rrlyr_tesscut_custom_aperture_animation",
                             aperture=aperture, light_curve=good.select(slice(0, max_frames)).aperture_photometry(aperture),
                             title=f"RR Lyr, TESS Sector {SECTOR}"),
     ]

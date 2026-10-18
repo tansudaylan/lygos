@@ -7,9 +7,11 @@ import numpy as np
 import pytest
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
+from astropy.table import Table
 from PIL import Image
 
 import lygos
+from lygos.main import _build_tess_past_flags, _indices_sources_in_cutout
 from lygos import roman
 from lygos.imagestack import ImageStack, resample_image, tangent_plane_wcs
 
@@ -72,6 +74,72 @@ def test_stack_selection_quality_and_concatenation():
     np.testing.assert_allclose(halves.time, stack.time)
     with pytest.raises(ValueError):
         ImageStack(flux=np.zeros((3, 4, 4)), time=[0.0, 1.0])
+
+
+def test_tess_past_flags_default_false_for_non_tess_pointings():
+    flags = _build_tess_past_flags([1], [], current_sector=65)
+    np.testing.assert_array_equal(flags, [False])
+
+
+def test_tess_past_flags_preserve_sectors_and_pad_other_instruments():
+    flags = _build_tess_past_flags([3, 5], [64, 65, 66], current_sector=65)
+    np.testing.assert_array_equal(flags, [True, False, False, False, False])
+
+
+def test_tess_past_flags_reject_sector_list_larger_than_pointing_grid():
+    with pytest.raises(ValueError, match="cannot exceed"):
+        _build_tess_past_flags([1], [64, 65], current_sector=65)
+
+
+def test_catalog_source_selection_preserves_strict_cutout_boundaries():
+    indices = _indices_sources_in_cutout(
+        [-0.6, -0.5, 0.0, 4.5, 4.5001],
+        [2.0, 2.0, 0.0, 4.5, 4.5],
+        5,
+    )
+
+    np.testing.assert_array_equal(indices, [2])
+
+
+def test_ultrasat_simulation_uses_catalog_without_tess_instrument_state(tmp_path, monkeypatch):
+    import lygos.main as main
+
+    catalog = Table({
+        "ID": np.array([101, 102]),
+        "ra": np.array([150.0, 150.0002]),
+        "dec": np.array([2.0, 2.0001]),
+        "Tmag": np.array([12.0, 14.0]),
+        "pmRA": np.zeros(2),
+        "pmDEC": np.zeros(2),
+        "RA_orig": np.array([150.0, 150.0002]),
+        "Dec_orig": np.array([2.0, 2.0001]),
+    })
+    monkeypatch.setenv("LYGOS_PATH", str(tmp_path))
+    monkeypatch.setattr(main.Catalogs, "query_criteria", lambda **kwargs: catalog)
+    time = 2462500.0 + np.arange(0.0, 0.02, 200.0 / 86400.0)
+
+    result = lygos.init(
+        strgmast="Synthetic field",
+        labltarg="Synthetic ULTRASAT field",
+        strgtarg="ultrasat_synthetic_test",
+        liststrginst=["ULTRASAT"],
+        liststrgtypedata=["simutargpartsynt"],
+        listtime=[[time]],
+        numbside=[15],
+        maxmtmagcatl=16.0,
+        boolfitt=False,
+        boolplot=False,
+        boolplotcntp=False,
+        boolplotrflx=False,
+        boolanim=False,
+        seedrand=12,
+    )
+
+    count_rate_cube = np.asarray(result["cntpdata"])
+    assert count_rate_cube.shape == (15, 15, time.size)
+    assert np.nanmin(count_rate_cube) == pytest.approx(10.0)
+    assert np.nanmax(count_rate_cube) > 10.0
+    assert result["timeexpo"][0][0] == pytest.approx(160.0 / 86400.0)
 
 
 def test_background_difference_and_variability_isolate_the_variable_star():
@@ -146,6 +214,25 @@ def test_aperture_photometry_recovers_injected_flux_and_variability():
     assert np.all(light_curve["flux_error"] > 0.0)
     threshold = stack.threshold_aperture(5.0)
     assert threshold[10, 10] and not threshold[0, 0]
+
+
+def test_polygon_aperture_rasterizes_custom_shape_and_extracts_its_pixels():
+    stack = synthetic_stack(number=4)
+    vertices = np.array([
+        [2.5, 2.5], [8.5, 2.5], [8.5, 6.5],
+        [5.5, 6.5], [5.5, 4.5], [2.5, 4.5],
+    ])
+
+    aperture = stack.polygon_aperture(vertices)
+    light_curve = stack.aperture_photometry(aperture)
+
+    assert aperture.shape == stack.flux.shape[1:]
+    assert aperture[3, 3] and aperture[5, 6]
+    assert not aperture[5, 3] and not aperture[10, 10]
+    np.testing.assert_allclose(light_curve["flux"], np.nansum(stack.flux[:, aperture], axis=1))
+
+    with pytest.raises(ValueError, match="at least 3"):
+        stack.polygon_aperture([[0.0, 0.0], [1.0, 1.0]])
 
 
 def test_centroid_and_time_binning():

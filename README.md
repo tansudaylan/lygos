@@ -23,6 +23,12 @@ aperture = stack.threshold_aperture(threshold=5.0)
 lygos.animate_stack(stack.select(slice(0, 120)), "rrlyr", aperture=aperture,
                     light_curve=stack.select(slice(0, 120)).aperture_photometry(aperture))
 
+column, row = stack.pixel_of(lygos.resolve_coordinate("RR Lyr"))
+vertices = [(column - 4, row - 3), (column + 3, row - 3), (column + 4, row + 1),
+            (column + 2, row + 4), (column - 4, row + 3)]
+custom_aperture = stack.polygon_aperture(vertices)
+custom_light_curve = stack.aperture_photometry(custom_aperture)
+
 roman = lygos.get_roman_cutout((9.6632, -43.88128), band="J129", size=41, mjd_range=(62150, 62550))
 lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
 ```
@@ -30,6 +36,27 @@ lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
 ![Roman J129 difference images of a simulated Type Ia supernova with its light curve](examples/roman_time_domain_supernova/visuals/roman_supernova_difference_animation.gif)
 
 Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_images/`, and `examples/roman_time_domain_supernova/` use only public data.
+
+## ULTRASAT synthetic images
+
+The `examples/ultrasat_synthetic/ultrasat_synthetic.py` example runs Lygos's
+image simulator for any target name resolvable by MAST and present in the TIC.
+It uses 2-arcsec pixels, a 200-second cadence, a 160-second exposure, and the
+ULTRASAT near-ultraviolet band (230-290 nm). It writes a median image and an
+aperture light curve under the example's `visuals/` directory.
+
+Set `LYGOS_PATH` before running the example so the simulated image cube and
+catalog cache go under the Lygos data directory:
+
+```bash
+export LYGOS_PATH=/path/to/lygos
+python examples/ultrasat_synthetic/ultrasat_synthetic.py --target Vega
+```
+
+This is a deterministic expected-count-rate simulation. It uses TIC Tmag with
+Lygos's ULTRASAT zeropoint, rather than converting a measured ultraviolet
+spectrum, and adds no shot or read noise. The output is useful for exercising
+Lygos's image path, not as a calibrated ULTRASAT observation forecast.
 
 ## Pixel-level variability
 
