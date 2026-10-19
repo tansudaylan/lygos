@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from astropy.visualization import (AsinhStretch, ImageNormalize, LinearStretch, LogStretch, PercentileInterval,
                                    SqrtStretch)
-from tdpy.plotting import figure_to_frame, save_figure, write_animation
+from tdpy.plotting import figure_to_frame, plot_background_colors, save_figure, write_animation
 
 from .imagestack import ImageStack
 
@@ -77,7 +77,7 @@ def _new_axes(stack: ImageStack, sky: bool, figsize=(5.4, 4.6)):
 
 def plot_image(stack: ImageStack, path, frame: int | str = "median", stretch: str = "asinh", cmap: str = "magma",
                aperture=None, markers=None, sky: bool = True, title: str | None = None,
-               typefileplot: str = "png") -> str:
+               typefileplot: str = "png", typeplotback: str | None = None) -> str:
     """Plot one frame (an index), the ``"median"`` image, or the ``"variability"`` map of a stack.
 
     ``aperture`` is a Boolean mask outlined in blue and ``markers`` maps legend labels to
@@ -96,11 +96,12 @@ def plot_image(stack: ImageStack, path, frame: int | str = "median", stretch: st
     _draw_image(axis, image, image_normalization(image, stretch), stack, cmap, aperture, markers, figure=figure,
                 colorbar_label=label)
     axis.set_title(title or default_title, fontsize=10)
-    return save_figure(figure, path, typefileplot, close_figure=True)
+    return save_figure(figure, path, typefileplot, typeplotback, close_figure=True)
 
 
 def plot_mosaic(stack: ImageStack, path, number: int = 12, columns: int = 4, stretch: str = "asinh",
-                cmap: str = "magma", difference: bool = False, typefileplot: str = "png") -> str:
+                cmap: str = "magma", difference: bool = False, typefileplot: str = "png",
+                typeplotback: str | None = None) -> str:
     """Plot ``number`` evenly spaced frames in a grid on one shared intensity scale.
 
     With ``difference`` each frame has the median image removed, on a symmetric scale.
@@ -121,18 +122,19 @@ def plot_mosaic(stack: ImageStack, path, number: int = 12, columns: int = 4, str
         axis.set_visible(False)
     figure.colorbar(image, ax=axes, shrink=0.8, label=f"{'Difference flux' if difference else 'Flux'} [{stack.unit}]")
     figure.suptitle(f"{stack.label}, frame titles give {_time_label(stack)}", fontsize=10)
-    return save_figure(figure, path, typefileplot, close_figure=True)
+    return save_figure(figure, path, typefileplot, typeplotback, close_figure=True)
 
 
 def plot_light_curve(light_curve: dict, path, title: str = "", normalize: bool = True,
-                     typefileplot: str = "png") -> str:
+                     typefileplot: str = "png", typeplotback: str | None = None) -> str:
     """Plot an aperture light curve from :meth:`ImageStack.aperture_photometry`, marking flagged frames."""
     time, flux, error = light_curve["time"], np.asarray(light_curve["flux"], float), light_curve["flux_error"]
     good = (light_curve["quality"] == 0) & np.isfinite(flux)
     scale = np.nanmedian(flux[good]) if normalize else 1.0
+    foreground = plt.rcParams['text.color'] if typeplotback is None else plot_background_colors(typeplotback)[1]
     figure, axis = plt.subplots(figsize=(7.0, 3.0))
     axis.errorbar(time[good], flux[good] / scale, yerr=np.asarray(error)[good] / scale, fmt=".", ms=3, lw=0.5,
-                  color="black", ecolor="0.6", label="Good frames")
+                  color=foreground, ecolor="0.6", label="Good frames")
     if (~good).any():
         axis.plot(time[~good], flux[~good] / scale, "x", color="#A51C30", ms=4, label="Flagged frames")
     axis.set_xlabel(f"Time [{light_curve.get('time_format') or 'day'}, day]")
@@ -140,12 +142,13 @@ def plot_light_curve(light_curve: dict, path, title: str = "", normalize: bool =
     axis.set_title(title, fontsize=10)
     axis.legend(loc="best", fontsize=8, fancybox=True, framealpha=1.0)
     axis.grid(False)
-    return save_figure(figure, path, typefileplot, close_figure=True)
+    return save_figure(figure, path, typefileplot, typeplotback, close_figure=True)
 
 
 def animate_stack(stack: ImageStack, path, stretch: str = "asinh", cmap: str = "magma", aperture=None,
                   light_curve: dict | None = None, difference: bool = False, max_frames: int = 120,
-                  duration_ms: int = 150, sky: bool = False, title: str | None = None) -> Path:
+                  duration_ms: int = 150, sky: bool = False, title: str | None = None,
+                  typeplotback: str | None = None) -> Path:
     """Write a GIF animation of a stack, one frame per image, on one shared intensity scale.
 
     With ``light_curve`` (from :meth:`ImageStack.aperture_photometry`) a lower panel shows the
@@ -186,5 +189,5 @@ def animate_stack(stack: ImageStack, path, stretch: str = "asinh", cmap: str = "
             curve.set_ylabel("Relative flux")
             curve.grid(False)
         figure.tight_layout()
-        frames.append(figure_to_frame(figure))
-    return write_animation(frames, path, duration_ms=duration_ms)
+        frames.append(figure_to_frame(figure, typeplotback=typeplotback))
+    return write_animation(frames, path, duration_ms=duration_ms, typeplotback=typeplotback)

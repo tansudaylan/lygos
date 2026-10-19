@@ -351,19 +351,29 @@ def test_find_roman_images_selects_covering_detectors(monkeypatch):
     assert roman.find_roman_images(CENTER, bands=("J129", "H158"), mjd_range=(62005.0, 62020.0))[0]["band"] == "J129"
 
 
-def test_visualizations_write_images_and_animations(tmp_path):
+@pytest.mark.parametrize('typeplotback', [None, 'white', 'dark'])
+def test_visualizations_write_images_and_animations(tmp_path, typeplotback):
     stack = synthetic_stack(number=8)
     aperture = stack.circular_aperture(3.0)
     light_curve = stack.aperture_photometry(aperture)
-    for path in (lygos.plot_image(stack, tmp_path / "median", aperture=aperture, markers={"Star": (10.0, 10.0)}),
-                 lygos.plot_image(stack, tmp_path / "variability", frame="variability", sky=False),
-                 lygos.plot_mosaic(stack, tmp_path / "mosaic", difference=True),
-                 lygos.plot_light_curve(light_curve, tmp_path / "light_curve")):
-        assert os.path.isfile(path)
+    background = (0, 0, 0) if typeplotback == 'dark' else (255, 255, 255)
+    for path in (lygos.plot_image(stack, tmp_path / "median", aperture=aperture, markers={"Star": (10.0, 10.0)},
+                                 typeplotback=typeplotback),
+                 lygos.plot_image(stack, tmp_path / "variability", frame="variability", sky=False,
+                                  typeplotback=typeplotback),
+                 lygos.plot_mosaic(stack, tmp_path / "mosaic", difference=True, typeplotback=typeplotback),
+                 lygos.plot_light_curve(light_curve, tmp_path / "light_curve", typeplotback=typeplotback)):
+        with Image.open(path) as image:
+            pixels = np.asarray(image.convert('RGB'))
+            assert tuple(pixels[0, 0]) == background
+            assert np.any(pixels != background)
     animation = lygos.animate_stack(stack, tmp_path / "movie", aperture=aperture, light_curve=light_curve,
-                                    difference=True)
+                                    difference=True, typeplotback=typeplotback)
     with Image.open(animation) as gif:
         assert gif.n_frames == len(stack)
+        for index in range(gif.n_frames):
+            gif.seek(index)
+            assert gif.convert('RGB').getpixel((0, 0)) == background
     with pytest.raises(ValueError):
         lygos.image_normalization(np.full((3, 3), np.nan))
 
