@@ -13,7 +13,7 @@ from .main import init
 from .paths import get_cache_path, get_data_path, get_repository_path, get_visuals_path
 from .roman import find_roman_images, get_roman_cutout, list_roman_images, load_roman_pointings, read_roman_image
 from .tess import (get_tess_cutout, get_tess_ffi, get_tess_ffi_cutout, list_tess_ffis, read_tess_cutout,
-                   resolve_coordinate, tess_sectors)
+                   plot_tess_sky_coverage, resolve_coordinate, tess_sectors)
 from .visualization import animate_stack, image_normalization, plot_image, plot_light_curve, plot_mosaic
 from .variability import compute_variability_products, plot_variability_summary
 
@@ -38,6 +38,7 @@ __all__ = [
     "plot_image",
     "plot_light_curve",
     "plot_mosaic",
+    "plot_tess_sky_coverage",
     "plot_variability_summary",
     "read_roman_image",
     "read_tess_cutout",

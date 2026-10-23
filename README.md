@@ -37,6 +37,20 @@ lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
 
 Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_images/`, and `examples/roman_time_domain_supernova/` use only public data.
 
+## TESS sector coverage
+
+Lygos can estimate the cumulative unique sky area covered by ordered TESS sectors. It samples the celestial sphere uniformly, tests each sample against the mission's CCD WCS geometry, and plots the accumulated area with its Monte Carlo uncertainty. The example also writes a dated sector-footprint animation, with TOI-1233 highlighted.
+
+The estimate describes nominal detector footprints, not usable exposure time or data quality. Runtime scales with the number of sky samples and sectors; the default 1,024 samples give a quick estimate, and the sampling uncertainty decreases as the sample count increases.
+
+```bash
+python examples/tess_sector_coverage/tess_sector_coverage.py --sectors 1 2 3 4 --animation-sectors 1 2 3 4
+```
+
+![Cumulative TESS sky coverage and dated sector animation](examples/tess_sector_coverage/visuals/tess_cumulative_sky_coverage_20261023_135600.png)
+
+![Dated TESS sector footprints with TOI-1233 highlighted](examples/tess_sector_coverage/visuals/tess_sector_timeline_20261023_135600.gif)
+
 ## ULTRASAT synthetic images
 
 The `examples/ultrasat_synthetic/ultrasat_synthetic.py` example runs Lygos's

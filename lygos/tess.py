@@ -14,10 +14,13 @@ from tdpy.verbosity import print
 from functools import lru_cache
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.wcs import WCS, FITSFixedWarning
+from tdpy.plotting import save_figure
+from tdpy.tess import tess_target_visibility
 
 from .imagestack import ImageStack
 
@@ -44,6 +47,109 @@ def tess_sectors(target) -> list[dict]:
 
     table = Tesscut.get_sectors(coordinates=resolve_coordinate(target))
     return [{"sector": int(row["sector"]), "camera": int(row["camera"]), "ccd": int(row["ccd"])} for row in table]
+
+
+def plot_tess_sky_coverage(
+    sectors,
+    output_path,
+    sample_count: int = 1024,
+    random_seed: int = 0,
+    typefileplot: str = "png",
+    typeplotback: str = "white",
+) -> dict[str, object]:
+    """Plot cumulative unique sky area covered by ordered TESS sectors.
+
+    Uniform random points on the sphere are tested against the mission WCS for
+    every CCD. The reported uncertainty is the binomial 1-sigma sampling error.
+    """
+    if np.isscalar(sectors):
+        sectors = (sectors,)
+    sectors = tuple(int(sector) for sector in sectors)
+    if not sectors or any(sector < 1 for sector in sectors):
+        raise ValueError("sectors must contain positive sector numbers")
+    if sectors != tuple(sorted(set(sectors))):
+        raise ValueError("sectors must be unique and strictly increasing")
+    if sample_count < 32:
+        raise ValueError("sample_count must be at least 32")
+
+    random = np.random.default_rng(random_seed)
+    right_ascension_deg = random.uniform(0.0, 360.0, sample_count)  # [deg]
+    sine_declination = random.uniform(-1.0, 1.0, sample_count)
+    declination_deg = np.rad2deg(np.arcsin(sine_declination))  # [deg]
+    targets = {
+        f"sample-{index:06d}": (right_ascension_deg[index], declination_deg[index])
+        for index in range(sample_count)
+    }
+    visibility = tess_target_visibility(targets, sectors)
+    observed = np.zeros((sample_count, len(sectors)), dtype=bool)
+    for index, target_name in enumerate(targets):
+        visible_sectors = set(visibility[target_name])
+        observed[index] = [sector in visible_sectors for sector in sectors]
+
+    cumulative_observed = np.logical_or.accumulate(observed, axis=1)
+    covered_fraction = np.mean(cumulative_observed, axis=0)
+    total_sky_area_deg2 = 4.0 * np.pi * (180.0 / np.pi) ** 2  # [deg^2]
+    cumulative_area_deg2 = total_sky_area_deg2 * covered_fraction  # [deg^2]
+    area_uncertainty_deg2 = total_sky_area_deg2 * np.sqrt(
+        covered_fraction * (1.0 - covered_fraction) / sample_count
+    )  # [deg^2]
+
+    longitude_rad = np.deg2rad(((180.0 - right_ascension_deg) % 360.0) - 180.0)
+    latitude_rad = np.deg2rad(declination_deg)
+    figure = plt.figure(figsize=(9.5, 7.0), constrained_layout=True)
+    map_axis = figure.add_subplot(2, 1, 1, projection="mollweide")
+    scatter = map_axis.scatter(
+        longitude_rad,
+        latitude_rad,
+        c=observed.sum(axis=1),
+        s=7,
+        cmap="viridis",
+        vmin=0,
+        vmax=len(sectors),
+        linewidths=0,
+    )
+    map_axis.set_xticks(np.deg2rad(np.arange(-150, 181, 30)))
+    map_axis.set_xticklabels([str(int((360 - value) % 360)) for value in np.arange(-150, 181, 30)])
+    map_axis.tick_params(labelsize=8)
+    map_axis.set_xlabel("Right ascension [deg]", fontsize=9)
+    map_axis.set_ylabel("Declination [deg]", fontsize=9)
+    map_axis.set_title(f"TESS sky coverage through Sector {sectors[-1]}", fontsize=10)
+    map_axis.grid(False)
+    colorbar = figure.colorbar(
+        scatter,
+        ax=map_axis,
+        orientation="horizontal",
+        pad=0.12,
+        shrink=0.7,
+    )
+    colorbar.set_label("Number of sectors per sampled position", fontsize=8)
+    colorbar.set_ticks(np.linspace(0, len(sectors), min(len(sectors) + 1, 5), dtype=int))
+    colorbar.ax.tick_params(labelsize=8)
+
+    area_axis = figure.add_subplot(2, 1, 2)
+    area_axis.errorbar(
+        sectors,
+        cumulative_area_deg2,
+        yerr=area_uncertainty_deg2,
+        marker="o",
+        markersize=3,
+        linewidth=1,
+        capsize=2,
+    )
+    area_axis.set_xlabel("TESS sector", fontsize=9)
+    area_axis.set_ylabel("Cumulative unique sky area [deg^2]", fontsize=9)
+    area_axis.tick_params(labelsize=8)
+    area_axis.set_ylim(bottom=0.0)
+    area_axis.grid(False)
+
+    path = save_figure(figure, output_path, typefileplot, typeplotback, close_figure=True)
+    return {
+        "sector_numbers": np.asarray(sectors, dtype=int),
+        "cumulative_area_deg2": cumulative_area_deg2,
+        "area_uncertainty_deg2": area_uncertainty_deg2,
+        "sample_sector_counts": observed.sum(axis=1),
+        "path": Path(path),
+    }
 
 
 def read_tess_cutout(path) -> ImageStack:
