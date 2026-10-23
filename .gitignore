@@ -6,4 +6,6 @@ build/
 dist/
 /data/
 /visuals/
+!examples/**/visuals/
+!examples/**/visuals/**
 docs/_build/

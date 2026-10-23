@@ -37,6 +37,14 @@ lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
 
 Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_images/`, and `examples/roman_time_domain_supernova/` use only public data.
 
+The [synthetic ImageStack notebook](examples/synthetic_image_stack.ipynb) creates
+a small toy scene and demonstrates background subtraction, threshold and fixed
+apertures, aperture photometry, and relative-variability plotting. It uses no
+archive data and writes its static and optional Bokeh outputs under
+`examples/visuals/`.
+
+![Synthetic Lygos median image, relative variability, and selected-pixel light curve](examples/visuals/lygos_synthetic_variability_summary.png)
+
 ## TESS sector coverage
 
 Lygos can estimate the cumulative unique sky area covered by ordered TESS sectors. It samples the celestial sphere uniformly, tests each sample against the mission's CCD WCS geometry, and plots the accumulated area with its Monte Carlo uncertainty. The example also writes a dated sector-footprint animation, with TOI-1233 highlighted.
@@ -84,6 +92,20 @@ python examples/tess_pixel_variability/tess_pixel_variability.py --bokeh
 Install `python -m pip install -e '.[bokeh]'` to write the interactive variability maps and pixel light curve as standalone HTML.
 
 ![TESS Sector 1 pixel variability around pi Mensae](examples/tess_pixel_variability/visuals/tess_pixel_variability.png)
+
+## Synthetic ImageStack workflow
+
+The [synthetic ImageStack notebook](examples/synthetic_image_stack.ipynb)
+builds a two-source image time series, compares threshold and fixed apertures,
+and plots the pixel-level variability summary. Poisson counts are generated
+from an explicit exposure time and converted to electron rates and
+uncertainties. These are toy data, not a TESS observation.
+
+![Synthetic aperture light curves from the ImageStack workflow](examples/visuals/lygos_synthetic_aperture_light_curves.png)
+
+![Synthetic median image, variability map, and pixel light curve](examples/visuals/lygos_synthetic_variability_summary.png)
+
+[Interactive variability summary](examples/visuals/lygos_synthetic_variability_summary.html)
 
 ## Image-based photometry
 I use the target-pixel images to model or extract stellar flux, assess nearby-source contamination, and retain a light curve I can trace back to the aperture or image model.

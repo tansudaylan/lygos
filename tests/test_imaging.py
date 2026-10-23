@@ -1,5 +1,6 @@
 """Offline tests of the lygos imaging layer on synthetic images; network tests need LYGOS_TEST_NETWORK=1."""
 
+import json
 import gzip
 import os
 
@@ -16,6 +17,27 @@ from lygos import roman
 from lygos.imagestack import ImageStack, resample_image, tangent_plane_wcs
 
 CENTER = SkyCoord(150.0, 2.0, unit="deg")
+
+
+def test_synthetic_image_stack_notebook_uses_pipeline_and_keeps_paths_private():
+    from pathlib import Path
+
+    path = Path(__file__).parents[1] / "examples" / "synthetic_image_stack.ipynb"
+    print("Reading from examples/synthetic_image_stack.ipynb...")
+    notebook = json.loads(path.read_text(encoding="utf-8"))
+    code = "\n".join(
+        "".join(cell["source"])
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code"
+    )
+    document = json.dumps(notebook)
+
+    assert "ImageStack(" in code
+    assert "threshold_aperture(" in code
+    assert "aperture_photometry(" in code
+    assert "plot_variability_summary(" in code
+    assert "The scene is synthetic" in document
+    assert "/" + "Users/" not in document
 
 
 def gaussian_scene(size=21, center=(10.0, 10.0), amplitude=100.0, sigma=1.5, sky=10.0):
@@ -376,6 +398,29 @@ def test_visualizations_write_images_and_animations(tmp_path, typeplotback):
             assert gif.convert('RGB').getpixel((0, 0)) == background
     with pytest.raises(ValueError):
         lygos.image_normalization(np.full((3, 3), np.nan))
+
+
+def test_synthetic_imagestack_notebook_calls_pipeline_without_local_paths():
+    import json
+    from pathlib import Path
+
+    notebook_path = Path(lygos.__file__).parents[1] / "examples" / "synthetic_image_stack.ipynb"
+    print("Reading from examples/synthetic_image_stack.ipynb...")
+    notebook = json.loads(notebook_path.read_text(encoding="utf-8"))
+    code = "\n".join(
+        "".join(cell["source"])
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "code"
+    )
+    document = json.dumps(notebook)
+
+    assert "ImageStack(" in code
+    assert "aperture_photometry(" in code
+    assert "compute_variability_products(" in code
+    assert "plot_variability_summary(" in code
+    assert 'repository_root / "examples" / "visuals"' in code
+    assert "expected_counts" in code and "exposure_seconds" in code
+    assert "/" + "Users/" not in document
 
 
 @pytest.mark.skipif(os.environ.get("LYGOS_TEST_NETWORK") != "1", reason="set LYGOS_TEST_NETWORK=1 to query archives")
