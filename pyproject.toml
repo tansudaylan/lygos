@@ -47,5 +47,6 @@ Repository = "https://github.com/tansudaylan/lygos"
 include = ["lygos*"]
 
 [tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
 testpaths = ["tests"]
 python_files = ["test*.py", "tests.py"]

@@ -3,6 +3,10 @@
 ## Purpose
 I start with the pixels when I want to understand where a light curve came from. Lygos retrieves image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. A neighboring star can contribute flux to a target's aperture, so I want to know who is sharing the pixels. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
 
+Run `python -m pytest -q` from the checkout to execute the tests. The project
+uses pytest's importlib mode by default, allowing test directories from multiple
+checkouts to be collected together even when test filenames match.
+
 ## Images from TESS and Roman
 Every retrieval returns one `ImageStack`, a time-ordered cube of images with times, uncertainties, quality flags, and sky coordinates. Background subtraction, difference imaging, variability maps, apertures, aperture photometry, centroids, plots, and animations therefore work the same way for every product.
 
