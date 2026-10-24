@@ -80,6 +80,21 @@ ULTRASAT zeropoint. It does not convert a measured ultraviolet spectrum or add
 shot and read noise. The example exercises Lygos's image workflow and does not
 forecast ULTRASAT observations.
 
+## Mauve data status
+
+Mauve's published science product is stellar UV-visible spectrophotometry over
+200-700 nm. The mission uses a telescope coupled to spectrometers. Selected
+commissioning spectra and calibration information are offered as FITS files
+through a Stardrive account, as described at `https://bssl.space/mauve/` and
+`https://bssl.space/mauve/preview-data/`.
+
+Lygos has no validated Mauve image reader or imaging example. A spectral detector
+array cannot be interpreted as a calibrated sky image without a documented
+mapping and response. The existing synthetic ImageStack examples make no Mauve
+instrument claim. Calibrated spectral time series need a verified product schema,
+wavelength and time conventions, and uncertainty treatment before a mission-specific
+Miletos analysis can be demonstrated.
+
 ## Pixel-level variability
 
 `ImageStack.variability_map()` measures scatter relative to the pixel uncertainties when available. `ImageStack.relative_variability_map()` instead reports robust scatter as a percentage of each pixel's median flux. The public Sector 1 example plots the median image, relative variability, and the most variable source pixel's light curve.
