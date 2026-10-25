@@ -123,6 +123,36 @@ def test_catalog_source_selection_preserves_strict_cutout_boundaries():
     np.testing.assert_array_equal(indices, [2])
 
 
+def test_ultrasat_example_records_illustrative_response_limits(tmp_path, monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    path = Path(__file__).resolve().parents[1] / "examples" / "ultrasat_synthetic" / "ultrasat_synthetic.py"
+    specification = importlib.util.spec_from_file_location("ultrasat_example_metadata", path)
+    example = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(example)
+
+    def simulate(**configuration):
+        times = configuration["listtime"][0][0]
+        cube = np.full((5, 5, len(times)), 10.0)
+        cube[2, 2, :] += 100.0
+        return {"cntpdata": cube, "listtime": [[times]],
+                "refr": SimpleNamespace(catl=[[[{"xpos": [2.0], "ypos": [2.0]}]]])}
+
+    monkeypatch.setattr(example.lygos, "init", simulate)
+    monkeypatch.setattr(example.lygos, "get_data_path", lambda: tmp_path / "data")
+    monkeypatch.setattr(example.lygos, "plot_image", lambda *args, **kwargs: None)
+    monkeypatch.setattr(example.lygos, "plot_light_curve", lambda *args, **kwargs: None)
+    monkeypatch.setattr(example, "VISUAL_PATH", tmp_path / "visuals")
+    result = example.simulate_target("Synthetic target", duration_hours=0.1, number_side=5)
+    metadata = result["stack"].metadata
+    assert "Illustrative" in metadata["instrument_model"]
+    assert "not a mission response" in metadata["instrument_model"]
+    assert metadata["mission_observing_modes_url"].startswith("https://www.weizmann.ac.il/ultrasat/")
+    assert "not an NUV spectral conversion" in metadata["magnitude_conversion"]
+
+
 def test_ultrasat_simulation_uses_catalog_without_tess_instrument_state(tmp_path, monkeypatch):
     import lygos.main as main
 

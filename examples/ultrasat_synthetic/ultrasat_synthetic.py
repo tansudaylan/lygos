@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simulate an expected ULTRASAT image time series around a MAST target."""
+"""Exercise the ULTRASAT-mode image workflow with illustrative expected counts."""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ from lygos import ImageStack
 EXAMPLE_PATH = Path(__file__).resolve().parent
 VISUAL_PATH = EXAMPLE_PATH / "visuals"
 DEFAULT_START_JD = 2462500.0  # [day]
-ULTRASAT_CADENCE_SECONDS = 200.0  # [s]
-ULTRASAT_EXPOSURE_SECONDS = 160.0  # [s], Lygos's 80% cadence convention
+ULTRASAT_CADENCE_SECONDS = 200.0  # [s], illustrative workflow cadence
+ULTRASAT_EXPOSURE_SECONDS = 160.0  # [s], Lygos's illustrative 80% cadence convention
 
 
 def _target_slug(target: str) -> str:
@@ -40,7 +40,7 @@ def simulate_target(
     seed: int = 0,
     typefileplot: str = "png",
 ) -> dict[str, object]:
-    """Simulate expected ULTRASAT count-rate images for a MAST-resolvable target."""
+    """Simulate illustrative count-rate images for a MAST-resolvable target."""
     if not target.strip():
         raise ValueError("target must be a nonempty MAST-resolvable name")
     if not np.isfinite([duration_hours, maximum_catalog_magnitude, start_jd]).all():
@@ -94,6 +94,8 @@ def simulate_target(
             "exposure_seconds": ULTRASAT_EXPOSURE_SECONDS,
             "band": "NUV 230-290 nm",
             "magnitude_conversion": "TIC Tmag with Lygos's ULTRASAT zeropoint; not an NUV spectral conversion",
+            "instrument_model": "Illustrative pixel, PSF, cadence, and count-rate assumptions; not a mission response",
+            "mission_observing_modes_url": "https://www.weizmann.ac.il/ultrasat/science-mission/modes-of-operation/modes-of-operation",
         },
     )
     catalog = result["refr"].catl[0][0][0]

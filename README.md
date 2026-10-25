@@ -3,6 +3,8 @@
 ## Purpose
 I start with the pixels when I want to understand where a light curve came from. Lygos retrieves image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. A neighboring star can contribute flux to a target's aperture, so I want to know who is sharing the pixels. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
 
+Pliny records Lygos as an earlier name for Byzantium in [*Natural History* 4.11](https://en.wikisource.org/wiki/Natural_History_(Rackham,_Jones,_%26_Eichholz)/Book_4). The name's deeper etymology is uncertain. I use it here for a pipeline that traces light curves back to the image pixels that produced them.
+
 Run `python -m pytest -q` from the checkout to execute the tests. The project
 uses pytest's importlib mode by default, allowing test directories from multiple
 checkouts to be collected together even when test filenames match.
@@ -53,7 +55,7 @@ archive data and writes its static and optional Bokeh outputs under
 
 Lygos can estimate the cumulative unique sky area covered by ordered TESS sectors. It samples the celestial sphere uniformly, tests each sample against the mission's CCD WCS geometry, and plots the accumulated area with its Monte Carlo uncertainty. The example also writes a dated sector-footprint animation, with TOI-1233 highlighted.
 
-The estimate describes nominal detector footprints, not usable exposure time or data quality. Runtime scales with the number of sky samples and sectors; the default 1,024 samples give a quick estimate, and the sampling uncertainty decreases as the sample count increases.
+The estimate covers nominal detector footprints. It does not measure usable exposure time or data quality. Runtime scales with the number of sky samples and sectors. The default 1,024 samples keep the estimate quick, and larger samples reduce Monte Carlo uncertainty.
 
 ```bash
 python examples/tess_sector_coverage/tess_sector_coverage.py --sectors 1 2 3 4 --animation-sectors 1 2 3 4
@@ -67,8 +69,9 @@ python examples/tess_sector_coverage/tess_sector_coverage.py --sectors 1 2 3 4 -
 
 The `examples/ultrasat_synthetic/ultrasat_synthetic.py` example runs Lygos's
 image simulator for any target name resolvable by MAST and present in the TIC.
-It uses 2-arcsec pixels, a 200-second cadence, a 160-second exposure, and the
-ULTRASAT near-ultraviolet band (230-290 nm). It writes a median image and an
+It assumes 2-arcsec pixels, a 200-second cadence, a 160-second exposure, and the
+ULTRASAT near-ultraviolet band (230-290 nm). The pixel, cadence, exposure, and
+count-rate choices are illustrative settings in this workflow. It writes a median image and an
 aperture light curve under the example's `visuals/` directory.
 
 Set `LYGOS_PATH` before running the example so the simulated image cube and
@@ -83,6 +86,11 @@ This deterministic expected-count-rate simulation uses TIC Tmag with Lygos's
 ULTRASAT zeropoint. It does not convert a measured ultraviolet spectrum or add
 shot and read noise. The example exercises Lygos's image workflow and does not
 forecast ULTRASAT observations.
+
+The mission's [current observing modes](https://www.weizmann.ac.il/ultrasat/science-mission/modes-of-operation/modes-of-operation)
+specify continuous 300-second exposures for the high-cadence survey. Predicting
+mission data requires a UV spectral conversion, a measured response and PSF,
+and detector-noise modeling in addition to the existing image workflow.
 
 ## Mauve data status
 
