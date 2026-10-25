@@ -19,7 +19,20 @@ Every retrieval returns one `ImageStack`, a time-ordered cube of images with tim
 | Roman detector images | OpenUniverse 2024 simulation at IRSA | `read_roman_image` |
 | Roman cutout time series | OpenUniverse 2024 simulation at IRSA | `get_roman_cutout` |
 
-No archive account is needed, and only the pixels a cutout needs are transferred.
+Live archive checks on October 25, 2026 retrieved measured TESS sector 14
+cutouts, a full 2048-by-2048 TESS detector image with uncertainties, and small
+sections read directly from two FFIs. The Roman checks used OpenUniverse 2024
+J129 simulations, including two aligned 11-by-11 cutouts and a full
+4088-by-4088 detector image with uncertainties and pixel flags. They validate
+the simulation-product reader; they do not claim access to measured Roman
+observations. Background subtraction preserved the original cubes, and native
+GIF generation retained fixed frame dimensions.
+
+No archive account is needed. Cutout methods limit the requested image area.
+TESS FFI methods use remote section reads; compressed Roman products are
+streamed and decompressed through the needed detector rows. Those transfers
+include headers and intervening rows. Full-detector readers transfer the full
+image products.
 
 ```python
 import lygos
