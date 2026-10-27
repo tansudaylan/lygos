@@ -7,6 +7,7 @@ import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
+from tdpy.cli import add_plot_arguments
 from tdpy.tess import PLANNED_SECTORS, animate_tess_sectors
 from tdpy.verbosity import print
 
@@ -64,7 +65,7 @@ def main() -> int:
     parser.add_argument("--animation-sectors", type=int, nargs="+")
     parser.add_argument("--sample-count", type=int, default=1024)
     parser.add_argument("--duration-ms", type=int, default=300)
-    parser.add_argument("--typefileplot", choices=("png", "pdf"), default="png")
+    add_plot_arguments(parser)
     arguments = parser.parse_args()
     run_example(
         sectors=arguments.sectors,

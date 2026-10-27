@@ -31,12 +31,17 @@ def test_synthetic_image_stack_notebook_uses_pipeline_and_keeps_paths_private():
         if cell["cell_type"] == "code"
     )
     document = json.dumps(notebook)
+    description = "\n".join(
+        "".join(cell["source"])
+        for cell in notebook["cells"]
+        if cell["cell_type"] == "markdown"
+    )
 
     assert "ImageStack(" in code
     assert "threshold_aperture(" in code
     assert "aperture_photometry(" in code
     assert "plot_variability_summary(" in code
-    assert "The scene is synthetic" in document
+    assert "synthetic" in description.casefold()
     assert "/" + "Users/" not in document
 
 
@@ -123,7 +128,123 @@ def test_catalog_source_selection_preserves_strict_cutout_boundaries():
     np.testing.assert_array_equal(indices, [2])
 
 
-def test_ultrasat_example_records_illustrative_response_limits(tmp_path, monkeypatch):
+@pytest.mark.parametrize('with_light_curve', [False, True])
+@pytest.mark.parametrize('count_scale', ['linr', 'asnh'])
+def test_count_image_highlights_selected_pixel_bounds(tmp_path, monkeypatch, with_light_curve, count_scale):
+    from types import SimpleNamespace
+
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    import lygos.main as main
+
+    counts = np.arange(25.0).reshape(5, 5)
+    original_counts = counts.copy()
+    selected_pixels = np.array([[1, 3], [3, 1]])
+    original_pixels = selected_pixels.copy()
+    output = tmp_path / 'highlighted_pixels.png'
+    configuration = SimpleNamespace(
+        sizeplotcntp='singcoln', sizefigrsing=(5, 5), numbside=[5],
+        labltime='Time [day]', lablyaxilcur='Relative flux',
+    )
+    configuration.timeoffs = 0.0  # [day]
+    times = np.array([0.0, 1.0, 2.0])  # [day]
+    light_curve = np.array([1.0, 0.9, 1.0])
+    figures = []
+    savefig = main.plt.savefig
+
+    def save_figure(*args, **kwargs):
+        figure = main.plt.gcf()
+        FigureCanvasAgg(figure)
+        figures.append(figure)
+        return savefig(*args, **kwargs)
+
+    monkeypatch.setattr(main, 'retr_pathvisu', lambda *args, **kwargs: str(output))
+    monkeypatch.setattr(main.plt, 'savefig', save_figure)
+    result = main.plot_cntp(
+        configuration, counts, 0, 0, count_scale, str(tmp_path),
+        'highlighted_pixels', 'fitt', boolanno=False, typescal='none',
+        listindxpixlcolr=selected_pixels,
+        lcur=light_curve if with_light_curve else None,
+        time=times if with_light_curve else None,
+        thistime=times[1] if with_light_curve else None,
+    )
+
+    assert result == str(output)
+    assert output.is_file()
+    image_axes = figures[0].axes[0]
+    expected_image = np.arcsinh(counts) if count_scale == 'asnh' else counts
+    np.testing.assert_array_equal(image_axes.images[0].get_array(), expected_image)
+    assert len(image_axes.patches) == len(selected_pixels)
+    for rectangle, (row, column) in zip(image_axes.patches, selected_pixels):
+        np.testing.assert_array_equal(rectangle.get_xy(), [column - 0.5, row - 0.5])
+        assert rectangle.get_width() == rectangle.get_height() == 1
+    if with_light_curve:
+        assert not figures[0].axes[1].patches
+        np.testing.assert_array_equal(figures[0].axes[1].lines[0].get_xdata(), times)
+        np.testing.assert_array_equal(figures[0].axes[1].lines[0].get_ydata(), light_curve)
+    np.testing.assert_array_equal(counts, original_counts)
+    np.testing.assert_array_equal(selected_pixels, original_pixels)
+
+
+@pytest.mark.parametrize('zoom', [False, True])
+@pytest.mark.parametrize('with_errors', [False, True])
+def test_component_light_curve_zoom_preserves_both_panels_and_data(tmp_path, monkeypatch, zoom, with_errors):
+    from types import SimpleNamespace
+
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    import lygos.main as main
+
+    epoch = 2457000.0  # [day]
+    times = epoch + np.array([0.0, 1.0, 2.0])  # [day]
+    limits = epoch + np.array([[0.5, 1.5]])  # [day]
+    flux = np.array([1.0, 1.02, 0.98])
+    errors = np.full(3, 0.01)
+    reference = np.array([0.99, 1.0, 1.0])
+    originals = [values.copy() for values in (times, limits, flux, errors, reference)]
+    output = tmp_path / 'component_light_curve.png'
+    configuration = SimpleNamespace(
+        listtime=[[times]], timeoffs=epoch, strgnorm='', pathvisutarg=str(tmp_path),
+        sizefigrdoublcur=(6, 5), labltime='Time [day]', lablyaxilcur='Relative flux',
+        fitt=SimpleNamespace(lablcomp=['Target']), liststrginst=['TESS'],
+        listlablpoin=[['Sector']], listtimeplotline=None, listlimttimetzom=limits,
+        refr=SimpleNamespace(
+            indxtser=[[np.array([0])]], time=[[[times]]],
+            stdvrflx=[[[errors]]], rflx=[[[reference]]],
+            colrlcur=['red'], labltser=[[['Reference']]], numbtser=[[1]],
+        ),
+    )
+    figures = []
+    savefig = main.plt.savefig
+
+    def save_figure(*args, **kwargs):
+        figure = main.plt.gcf()
+        FigureCanvasAgg(figure)
+        figures.append(figure)
+        return savefig(*args, **kwargs)
+
+    monkeypatch.setattr(main, 'retr_pathvisu', lambda *args, **kwargs: str(output))
+    monkeypatch.setattr(main.plt, 'savefig', save_figure)
+    main.plot_lcurcomp(
+        configuration, flux, errors, 0, 0, 0, '', 'test',
+        indxtzom=0 if zoom else None, boolerrr=with_errors,
+    )
+
+    assert output.is_file()
+    primary, residual = figures[0].axes
+    np.testing.assert_array_equal(primary.lines[0].get_xdata(), times - epoch)
+    np.testing.assert_array_equal(primary.lines[0].get_ydata(), flux)
+    np.testing.assert_array_equal(residual.lines[0].get_xdata(), times - epoch)
+    np.testing.assert_array_equal(residual.lines[0].get_ydata(), flux - reference)
+    for axis in (primary, residual):
+        if zoom:
+            np.testing.assert_array_equal(axis.get_xlim(), limits[0] - epoch)
+        else:
+            assert axis.get_xlim()[0] < 0 and axis.get_xlim()[1] > 2
+    for actual, expected in zip((times, limits, flux, errors, reference), originals):
+        np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.parametrize('returned_exposure_seconds', [300.0, 160.0])
+def test_ultrasat_example_records_illustrative_response_limits(tmp_path, monkeypatch, returned_exposure_seconds):
     import importlib.util
     from pathlib import Path
     from types import SimpleNamespace
@@ -135,9 +256,12 @@ def test_ultrasat_example_records_illustrative_response_limits(tmp_path, monkeyp
 
     def simulate(**configuration):
         times = configuration["listtime"][0][0]
+        np.testing.assert_allclose(np.diff(times) * 86400.0, 300.0, rtol=0, atol=5e-5)
+        assert configuration["timeexpo"][0][0] == pytest.approx(300.0 / 86400.0)
         cube = np.full((5, 5, len(times)), 10.0)
         cube[2, 2, :] += 100.0
         return {"cntpdata": cube, "listtime": [[times]],
+                "timeexpo": [[returned_exposure_seconds / 86400.0]],
                 "refr": SimpleNamespace(catl=[[[{"xpos": [2.0], "ypos": [2.0]}]]])}
 
     monkeypatch.setattr(example.lygos, "init", simulate)
@@ -145,15 +269,22 @@ def test_ultrasat_example_records_illustrative_response_limits(tmp_path, monkeyp
     monkeypatch.setattr(example.lygos, "plot_image", lambda *args, **kwargs: None)
     monkeypatch.setattr(example.lygos, "plot_light_curve", lambda *args, **kwargs: None)
     monkeypatch.setattr(example, "VISUAL_PATH", tmp_path / "visuals")
+    if returned_exposure_seconds != 300.0:
+        with pytest.raises(RuntimeError, match='retain the requested ULTRASAT exposure'):
+            example.simulate_target("Synthetic target", duration_hours=0.1, number_side=5)
+        return
     result = example.simulate_target("Synthetic target", duration_hours=0.1, number_side=5)
     metadata = result["stack"].metadata
     assert "Illustrative" in metadata["instrument_model"]
     assert "not a mission response" in metadata["instrument_model"]
     assert metadata["mission_observing_modes_url"].startswith("https://www.weizmann.ac.il/ultrasat/")
     assert "not an NUV spectral conversion" in metadata["magnitude_conversion"]
+    assert metadata["cadence_seconds"] == metadata["exposure_seconds"] == 300.0
+    assert "no readout gaps" in metadata["timing_model"]
 
 
-def test_ultrasat_simulation_uses_catalog_without_tess_instrument_state(tmp_path, monkeypatch):
+@pytest.mark.parametrize('exposure_seconds', [None, 300.0, 0.0, -1.0, np.nan, np.inf, -np.inf])
+def test_ultrasat_simulation_uses_catalog_without_tess_instrument_state(tmp_path, monkeypatch, exposure_seconds):
     import lygos.main as main
 
     catalog = Table({
@@ -168,15 +299,17 @@ def test_ultrasat_simulation_uses_catalog_without_tess_instrument_state(tmp_path
     })
     monkeypatch.setenv("LYGOS_PATH", str(tmp_path))
     monkeypatch.setattr(main.Catalogs, "query_criteria", lambda **kwargs: catalog)
-    time = 2462500.0 + np.arange(0.0, 0.02, 200.0 / 86400.0)
+    cadence_seconds = 200.0 if exposure_seconds is None else 300.0  # [s]
+    time = 2462500.0 + np.arange(0.0, 0.02, cadence_seconds / 86400.0)  # [day]
 
-    result = lygos.init(
+    configuration = dict(
         strgmast="Synthetic field",
         labltarg="Synthetic ULTRASAT field",
         strgtarg="ultrasat_synthetic_test",
         liststrginst=["ULTRASAT"],
         liststrgtypedata=["simutargpartsynt"],
         listtime=[[time]],
+        timeexpo=None if exposure_seconds is None else [[exposure_seconds / 86400.0]],
         numbside=[15],
         maxmtmagcatl=16.0,
         boolfitt=False,
@@ -186,12 +319,18 @@ def test_ultrasat_simulation_uses_catalog_without_tess_instrument_state(tmp_path
         boolanim=False,
         seedrand=12,
     )
+    if exposure_seconds is not None and (not np.isfinite(exposure_seconds) or exposure_seconds <= 0):
+        with pytest.raises(ValueError, match='finite and positive in days'):
+            lygos.init(**configuration)
+        return
+    result = lygos.init(**configuration)
 
     count_rate_cube = np.asarray(result["cntpdata"])
     assert count_rate_cube.shape == (15, 15, time.size)
     assert np.nanmin(count_rate_cube) == pytest.approx(10.0)
     assert np.nanmax(count_rate_cube) > 10.0
-    assert result["timeexpo"][0][0] == pytest.approx(160.0 / 86400.0)
+    expected_exposure_seconds = 160.0 if exposure_seconds is None else exposure_seconds
+    assert result["timeexpo"][0][0] == pytest.approx(expected_exposure_seconds / 86400.0)
 
 
 def test_background_difference_and_variability_isolate_the_variable_star():

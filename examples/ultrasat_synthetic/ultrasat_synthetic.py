@@ -12,6 +12,7 @@ import matplotlib
 matplotlib.use("Agg")
 
 import numpy as np
+from miletos.simulation import generate_ultrasat_time_series
 from tdpy.cli import add_plot_arguments
 from tdpy.verbosity import print
 
@@ -22,8 +23,8 @@ from lygos import ImageStack
 EXAMPLE_PATH = Path(__file__).resolve().parent
 VISUAL_PATH = EXAMPLE_PATH / "visuals"
 DEFAULT_START_JD = 2462500.0  # [day]
-ULTRASAT_CADENCE_SECONDS = 200.0  # [s], illustrative workflow cadence
-ULTRASAT_EXPOSURE_SECONDS = 160.0  # [s], Lygos's illustrative 80% cadence convention
+ULTRASAT_CADENCE_SECONDS = 300.0  # [s]
+ULTRASAT_EXPOSURE_SECONDS = 300.0  # [s]
 
 
 def _target_slug(target: str) -> str:
@@ -51,9 +52,12 @@ def simulate_target(
         raise ValueError("typefileplot must be 'png' or 'pdf'")
 
     lygos.get_data_path()
-    duration_seconds = duration_hours * 3600.0  # [s]
-    time_offset_days = np.arange(0.0, duration_seconds, ULTRASAT_CADENCE_SECONDS) / 86400.0  # [day]
-    time_jd = start_jd + time_offset_days  # [day]
+    time_jd, cadence_seconds, exposure_seconds = generate_ultrasat_time_series(
+        start_jd=start_jd,
+        duration_days=duration_hours / 24.0,
+        cadence_seconds=ULTRASAT_CADENCE_SECONDS,
+        exposure_seconds=ULTRASAT_EXPOSURE_SECONDS,
+    )
     slug = _target_slug(target)
     result = lygos.init(
         strgmast=target,
@@ -62,6 +66,7 @@ def simulate_target(
         liststrginst=["ULTRASAT"],
         liststrgtypedata=["simutargpartsynt"],
         listtime=[[time_jd]],
+        timeexpo=[[exposure_seconds / 86400.0]],
         numbside=[number_side],
         maxmtmagcatl=maximum_catalog_magnitude,
         boolfitt=False,
@@ -74,6 +79,9 @@ def simulate_target(
 
     count_rate_cube = np.asarray(result["cntpdata"], dtype=float)  # [e- s^-1 pixel^-1]
     simulated_times = np.asarray(result["listtime"][0][0], dtype=float)  # [day]
+    exposure_seconds = float(result["timeexpo"][0][0]) * 86400.0  # [s]
+    if not np.isfinite(exposure_seconds) or not np.isclose(exposure_seconds, ULTRASAT_EXPOSURE_SECONDS):
+        raise RuntimeError("Lygos did not retain the requested ULTRASAT exposure")
     if count_rate_cube.shape != (number_side, number_side, simulated_times.size):
         raise RuntimeError("Lygos returned an ULTRASAT cube with an unexpected shape")
     if not np.isfinite(count_rate_cube).all() or not np.any(count_rate_cube > 0.0):
@@ -90,11 +98,12 @@ def simulate_target(
         metadata={
             "target": target,
             "photometry": "synthetic expectation; no shot or read noise added",
-            "cadence_seconds": ULTRASAT_CADENCE_SECONDS,
-            "exposure_seconds": ULTRASAT_EXPOSURE_SECONDS,
+            "cadence_seconds": cadence_seconds,
+            "exposure_seconds": exposure_seconds,
             "band": "NUV 230-290 nm",
             "magnitude_conversion": "TIC Tmag with Lygos's ULTRASAT zeropoint; not an NUV spectral conversion",
-            "instrument_model": "Illustrative pixel, PSF, cadence, and count-rate assumptions; not a mission response",
+            "instrument_model": "Illustrative pixel, PSF, and count-rate assumptions; not a mission response",
+            "timing_model": "Nominal continuous 300-second exposures; no readout gaps or timing jitter modeled",
             "mission_observing_modes_url": "https://www.weizmann.ac.il/ultrasat/science-mission/modes-of-operation/modes-of-operation",
         },
     )

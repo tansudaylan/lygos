@@ -17,6 +17,7 @@ import pandas as pd
 
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import patches
 
 from astroquery.mast import Catalogs
 import astroquery.mast
@@ -295,10 +296,10 @@ def plot_cntp(gdat, \
                 axis[0].axhline(k - 0.5, ls='--', alpha=0.3, color='y')
         
         if listindxpixlcolr is not None:
-            temp = np.zeros_like(cntp).flatten()
             for indxpixlcolr in listindxpixlcolr:
-                rect = patches.Rectangle((indxpixlcolr[1], indxpixlcolr[0]),1,1,linewidth=1,edgecolor='r',facecolor='none')
-                axis.add_patch(rect)
+                rect = patches.Rectangle((indxpixlcolr[1] - 0.5, indxpixlcolr[0] - 0.5),
+                                         1, 1, linewidth=1, edgecolor='r', facecolor='none')
+                axis[0].add_patch(rect)
         
         if typescal != 'none':
             #xerr = 0.1 * (gdat.numbside[p] - 1)
@@ -440,7 +441,8 @@ def plot_lcurcomp(gdat, lcurmodl, stdvlcurmodl, k, p, o, strgchun, strgplot, tim
         axis[0].legend()
 
     if indxtzom is not None:
-        axis[a].set_xlim(gdat.listlimttimetzom[indxtzom] - gdat.timeoffs)
+        for subplot in axis:
+            subplot.set_xlim(gdat.listlimttimetzom[indxtzom] - gdat.timeoffs)
     
     #plt.tight_layout()
     print('Writing to %s...' % path)
@@ -606,6 +608,7 @@ def retr_cntpmodl(gdat, p, strgmodl, xpos, ypos, cnts, cntpbackscal, parapsfn, t
                     psfnsour = psf_interpolator(deltxpos, deltypos, grid=False)
 
                 if gmod.typepsfnshap == 'pfre':
+                    coef = parapsfn
                     psfnsour = coef[0] * deltxpos + coef[1] * deltypos + coef[2] * deltxpos * deltypos + \
                                     coef[3] * deltxpos**2 + coef[4] * deltypos**2 + coef[5] * deltxpos**2 * deltypos + coef[6] * deltypos**2 * deltxpos + \
                                     coef[7] * deltxpos**3 + coef[8] * deltypos**3 + coef[9] * np.exp(-deltxpos**2 / coef[10] - deltypos**2 / coef[11])
@@ -622,10 +625,13 @@ def retr_cntpmodl(gdat, p, strgmodl, xpos, ypos, cnts, cntpbackscal, parapsfn, t
             dx = xpos - xpos.astype(int) - 0.5
             dy = ypos - ypos.astype(int) - 0.5
             ## design matrix
-            matrdesi = np.column_stack((np.ones(x.size), dx, dy, dx*dx, dx*dy, dy*dy, dx*dx*dx, dx*dx*dy, dx*dy*dy, dy*dy*dy))
+            matrdesi = np.column_stack((np.ones(xpos.size), dx, dy, dx*dx, dx*dy, dy*dy, dx*dx*dx, dx*dx*dy, dx*dy*dy, dy*dy*dy))
             
-            tmpt = np.dot(matrdesi, gdat.coefspix).reshape((-1, gdat.numbside[p], gdat.numbside[p]))
-            cntpmodl = np.sum(tmpt[:, :, :, None] * cnts[:, None, None, :], 0)
+            tmpt = np.dot(matrdesi, gdat.coefspix).reshape((xpos.size, gdat.numbside[p], gdat.numbside[p]))
+            if cnts.ndim == 2:
+                cntpmodl += np.einsum('sij,ts->ijt', tmpt, cnts)
+            else:
+                cntpmodl += np.einsum('sij,s->ij', tmpt, cnts)
             
             if gdat.booldiag:
                 if not np.isfinite(cntpmodl).all():
@@ -924,7 +930,7 @@ def init( \
          ## Boolean flag to turn on CBV detrending
          booldetrcbvs=False, \
          
-         # exposure times for each instrument and pointing
+         # exposure times for each instrument and pointing [day]
          timeexpo=None, \
 
          # string indicating the cluster of targets
@@ -2625,11 +2631,15 @@ def init( \
                     gdat.true.parapsfn = np.array([gdat.true.sigmpsfnxpos, gdat.true.sigmpsfnypos, gdat.true.fracskewpsfnxpos, gdat.true.fracskewpsfnypos])
             
             if gdat.booldiag:
-                if gdat.typecade[p][o] is not None and gdat.timeexpo[p][o] is not None:
-                    raise Exception('')
+                exposure = gdat.timeexpo[p][o]
+                if exposure is not None and (
+                        not isinstance(exposure, (int, float, np.integer, np.floating))
+                        or isinstance(exposure, (bool, np.bool_))
+                        or not np.isfinite(exposure) or exposure <= 0):
+                    raise ValueError('Exposure time must be finite and positive in days')
 
             if gdat.boolsimutargsynt or gdat.liststrgtypedata[p] == 'simutargpartsynt':
-                if gdat.liststrginst[p] == 'TESS' or gdat.liststrginst[p].startswith('TGEO') or gdat.liststrginst[p] == 'ULTRASAT' or gdat.liststrginst[p] == 'TESSCam':
+                if gdat.timeexpo[p][o] is None and (gdat.liststrginst[p] == 'TESS' or gdat.liststrginst[p].startswith('TGEO') or gdat.liststrginst[p] == 'ULTRASAT' or gdat.liststrginst[p] == 'TESSCam'):
                     if gdat.typecade[p][o] == '2min':
                         gdat.timeexpo[p][o] = 2. / 60. / 24. # [days]
                     elif gdat.typecade[p][o] == '10mn':

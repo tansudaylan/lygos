@@ -1,9 +1,9 @@
 # Lygos
 
-## Purpose
-I start with the pixels when I want to understand where a light curve came from. Lygos retrieves image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. A neighboring star can contribute flux to a target's aperture, so I want to know who is sharing the pixels. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
+## Overview
+I start with the pixels when tracing a light curve back to its image. Lygos retrieves image time series from the Transiting Exoplanet Survey Satellite (TESS) and the Nancy Grace Roman Space Telescope, then extracts TESS light curves with image-based photometry. A neighboring star can contribute flux to a target aperture, so the pixels show who shares it. Documentation is at https://lygos.readthedocs.io, with its source in `docs/`.
 
-Pliny records Lygos as an earlier name for Byzantium in [*Natural History* 4.11](https://en.wikisource.org/wiki/Natural_History_(Rackham,_Jones,_%26_Eichholz)/Book_4). The name's deeper etymology is uncertain. I use it here for a pipeline that traces light curves back to the image pixels that produced them.
+Pliny records Lygos as an earlier name for Byzantium in [*Natural History* 4.11](https://en.wikisource.org/wiki/Natural_History_(Rackham,_Jones,_%26_Eichholz)/Book_4). The name's deeper etymology is uncertain. It suits a pipeline that traces light curves back to the image pixels that produced them.
 
 Run `python -m pytest -q` from the checkout to execute the tests. The project
 uses pytest's importlib mode by default, allowing test directories from multiple
@@ -23,13 +23,13 @@ Live archive checks on October 25, 2026 retrieved measured TESS sector 14
 cutouts, a full 2048-by-2048 TESS detector image with uncertainties, and small
 sections read directly from two FFIs. The Roman checks used OpenUniverse 2024
 J129 simulations, including two aligned 11-by-11 cutouts and a full
-4088-by-4088 detector image with uncertainties and pixel flags. They validate
-the simulation-product reader; they do not claim access to measured Roman
-observations. Background subtraction preserved the original cubes, and native
-GIF generation retained fixed frame dimensions.
+4088-by-4088 detector image with uncertainties and pixel flags. The Roman
+portion exercises the simulation-product reader with simulated data. Background
+subtraction preserved the original cubes, and native GIF generation retained
+fixed frame dimensions.
 
 No archive account is needed. Cutout methods limit the requested image area.
-TESS FFI methods use remote section reads; compressed Roman products are
+TESS FFI methods use remote section reads. Compressed Roman products are
 streamed and decompressed through the needed detector rows. Those transfers
 include headers and intervening rows. Full-detector readers transfer the full
 image products.
@@ -56,14 +56,6 @@ lygos.animate_stack(roman.subtract_background(), "supernova", difference=True)
 
 Examples in `examples/tess_cutout_time_series/`, `examples/tess_full_frame_images/`, and `examples/roman_time_domain_supernova/` use only public data.
 
-The [synthetic ImageStack notebook](examples/synthetic_image_stack.ipynb) creates
-a small toy scene and demonstrates background subtraction, threshold and fixed
-apertures, aperture photometry, and relative-variability plotting. It uses no
-archive data and writes its static and optional Bokeh outputs under
-`examples/visuals/`.
-
-![Synthetic Lygos median image, relative variability, and selected-pixel light curve](examples/visuals/lygos_synthetic_variability_summary.png)
-
 ## TESS sector coverage
 
 Lygos can estimate the cumulative unique sky area covered by ordered TESS sectors. It samples the celestial sphere uniformly, tests each sample against the mission's CCD WCS geometry, and plots the accumulated area with its Monte Carlo uncertainty. The example also writes a dated sector-footprint animation, with TOI-1233 highlighted.
@@ -82,10 +74,12 @@ python examples/tess_sector_coverage/tess_sector_coverage.py --sectors 1 2 3 4 -
 
 The `examples/ultrasat_synthetic/ultrasat_synthetic.py` example runs Lygos's
 image simulator for any target name resolvable by MAST and present in the TIC.
-It assumes 2-arcsec pixels, a 200-second cadence, a 160-second exposure, and the
-ULTRASAT near-ultraviolet band (230-290 nm). The pixel, cadence, exposure, and
-count-rate choices are illustrative settings in this workflow. It writes a median image and an
-aperture light curve under the example's `visuals/` directory.
+It simulates the ULTRASAT near-ultraviolet band (230-290 nm) with 2-arcsec
+pixels and continuous 300-second exposures, matching the timing described for
+the mission's [high-cadence survey](https://www.weizmann.ac.il/ultrasat/science-mission/modes-of-operation/modes-of-operation).
+Frames are sampled at the exposure interval, with no readout gaps or timing
+jitter. The example writes a median image and an aperture light curve under its
+`visuals/` directory.
 
 Set `LYGOS_PATH` before running the example so the simulated image cube and
 catalog cache go under the Lygos data directory:
@@ -95,15 +89,16 @@ export LYGOS_PATH=/path/to/lygos
 python examples/ultrasat_synthetic/ultrasat_synthetic.py --target Vega
 ```
 
-This deterministic expected-count-rate simulation uses TIC Tmag with Lygos's
-ULTRASAT zeropoint. It does not convert a measured ultraviolet spectrum or add
-shot and read noise. The example exercises Lygos's image workflow and does not
-forecast ULTRASAT observations.
+The simulated count rates are deterministic expectations based on TIC Tmag and
+Lygos's ULTRASAT zeropoint. Tmag is not converted from a measured ultraviolet
+spectrum, and the simulation adds neither shot nor read noise. It has no
+measured instrument response, so the pixel scale, PSF, and count rates are
+illustrative.
 
-The mission's [current observing modes](https://www.weizmann.ac.il/ultrasat/science-mission/modes-of-operation/modes-of-operation)
-specify continuous 300-second exposures for the high-cadence survey. Predicting
-mission data requires a UV spectral conversion, a measured response and PSF,
-and detector-noise modeling in addition to the existing image workflow.
+The `timeexpo` argument to `lygos.init` takes values in days, nested by
+instrument and pointing. When `booldiag` is true, each supplied value must be
+finite and positive. Lygos retains explicit values as given and applies the
+existing 0.8 factor only to inferred exposures.
 
 ## Mauve data status
 
@@ -113,12 +108,11 @@ commissioning spectra and calibration information are offered as FITS files
 through a Stardrive account, as described at `https://bssl.space/mauve/` and
 `https://bssl.space/mauve/preview-data/`.
 
-Lygos has no validated Mauve image reader or imaging example. A spectral detector
-array cannot be interpreted as a calibrated sky image without a documented
-mapping and response. The existing synthetic ImageStack examples make no Mauve
-instrument claim. Calibrated spectral time series need a verified product schema,
-wavelength and time conventions, and uncertainty treatment before a mission-specific
-Miletos analysis can be demonstrated.
+Lygos has no Mauve image reader or imaging example. A spectral detector array
+cannot be treated as a sky image without a documented mapping and response. The
+synthetic ImageStack examples do not model Mauve. A mission-specific Miletos
+analysis needs a defined product schema, wavelength and time conventions, and
+uncertainty treatment.
 
 ## Pixel-level variability
 
@@ -133,13 +127,14 @@ Install `python -m pip install -e '.[bokeh]'` to write the interactive variabili
 
 ![TESS Sector 1 pixel variability around pi Mensae](examples/tess_pixel_variability/visuals/tess_pixel_variability.png)
 
-## Synthetic ImageStack workflow
+## Synthetic ImageStack notebook
 
 The [synthetic ImageStack notebook](examples/synthetic_image_stack.ipynb)
 builds a two-source image time series, compares threshold and fixed apertures,
-and plots the pixel-level variability summary. Poisson counts are generated
-from an explicit exposure time and converted to electron rates and
-uncertainties. These are toy data, not a TESS observation.
+and plots pixel-level variability. It draws Poisson counts from a specified
+exposure time and converts them to electron rates and uncertainties. The data
+are synthetic and use no archive observations. Static figures and optional
+Bokeh output go under `examples/visuals/`.
 
 ![Synthetic aperture light curves from the ImageStack workflow](examples/visuals/lygos_synthetic_aperture_light_curves.png)
 
@@ -148,7 +143,7 @@ uncertainties. These are toy data, not a TESS observation.
 [Interactive variability summary](examples/visuals/lygos_synthetic_variability_summary.html)
 
 ## Image-based photometry
-I use the target-pixel images to model or extract stellar flux, assess nearby-source contamination, and retain a light curve I can trace back to the aperture or image model.
+Target-pixel images can be used to model or extract stellar flux, assess nearby-source contamination, and trace a light curve to its aperture or image model.
 
 For PSF fitting, Lygos evaluates the image likelihood and delegates posterior inference to PCAT. PCAT is a required dependency, and the dependency map marks this direct image-inference path.
 
@@ -173,13 +168,3 @@ python examples/public_tess_target_pixel.py --typefileplot png
 ![WASP-121 TESS Sector 7 target-pixel image](examples/public_tess_target_pixel.png)
 
 The example queries the public Mikulski Archive for Space Telescopes (MAST) for the WASP-121 SPOC target-pixel products, selects TESS Sector 7, masks nonzero quality flags, and calculates the median 11 by 11 pixel count map with nearby TESS Input Catalog sources overlaid. The figure contains observed TESS data rather than a simulation and quantifies the image-level contamination context. This example does not extract a light curve.
-
-## Following the photometry
-For a target analysis, I want to inspect:
-
-- input image or target metadata
-- extracted or modeled source apertures
-- intermediate photometric comparisons
-- final target light curves and summary plots.
-
-Lygos writes these products under the configured data and visualization directories.

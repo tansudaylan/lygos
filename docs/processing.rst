@@ -73,6 +73,6 @@ equally to TESS images, for example to place two sectors on one grid.
 Photometric pipeline
 --------------------
 
-:func:`lygos.init` remains the image-based TESS photometry pipeline. It fits stars with
-the TESS point-spread function and produces light curves and diagnostic figures for
-known targets.
+:func:`lygos.init` runs the image-based TESS photometry pipeline. It fits stars
+with the TESS point-spread function and, when relative-flux plotting is enabled,
+writes light-curve plots for the fitted sources.
